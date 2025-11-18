@@ -1,0 +1,128 @@
+# Pastas de documentos (01. Trabalhista até 25. Contratos)
+# Ignora todas as pastas que começam com números de 01 a 25
+0[1-9]. */
+1[0-9]. */
+2[0-5]. */
+
+# Pastas específicas (garantia)
+01. Trabalhista/
+04. Tributário/
+07. Consumidor/
+08. Previdenciário/
+13. Civil/
+14. Comercial/
+18. Empresarial e Societário/
+25. Contratos*/
+
+# Ambiente virtual Python
+venv/
+env/
+ENV/
+.venv/
+
+# Arquivos Python compilados
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribuição / empacotamento
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Arquivos do sistema operacional
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDEs e editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Arquivos de log
+*.log
+logs/
+
+# Arquivos temporários
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Arquivos de dados grandes e processados
+# Embeddings e arquivos JSONL grandes (gerados/processados)
+embeddings.jsonl
+docs_raw.jsonl
+docs_filtered.jsonl
+batch_requests.jsonl
+*.jsonl
+
+# Arquivos de dados e datasets (descomente se não quiser versionar)
+# CSV e XLSX grandes/processados
+# *.csv
+# *.xlsx
+
+# Arquivos específicos grandes (descomente se não quiser versionar)
+# selecao_rag.csv
+# selecao_rag.xlsx
+# curadoria.csv
+# dataset_curado.csv
+# dataset_silver.csv
+# classification_results.jsonl
+
+# Modelos de machine learning e arquivos binários grandes
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.model
+*.pt
+*.pth
+*.ckpt
+*.weights
+
+# Bancos de dados
+*.db
+*.sqlite
+*.sqlite3
+
+# Arquivos de dados estruturados
+*.parquet
+*.feather
+*.arrow
+
+# Arquivos de configuração local
+.env
+.env.local
+config.local.py
+
