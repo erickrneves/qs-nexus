@@ -59,7 +59,7 @@ Estrutura e formato dos dados:
 ## Estrutura do Projeto
 
 ```
-legalwise-curadoria-modelos/
+lw-rag-system/              # Projeto principal
 ├── docs/                    # Esta pasta
 │   ├── INDEX.md            # Este arquivo
 │   ├── README.md           # Visão geral
@@ -67,7 +67,6 @@ legalwise-curadoria-modelos/
 │   ├── ARQUITETURA.md      # Arquitetura
 │   ├── SCRIPTS.md          # Scripts
 │   └── DADOS.md            # Estrutura de dados
-├── [pastas de documentos]  # 01. Trabalhista, etc.
 ├── extract_docs.py         # Scripts de processamento
 ├── filter_docs.py
 ├── classify_docs_v3.py
@@ -75,7 +74,16 @@ legalwise-curadoria-modelos/
 ├── build_datasets.py
 ├── create_embeddings.py
 └── import_embeddings_supabase.py
+
+list-docx/                  # Pasta separada com documentos DOCX
+├── 01. Trabalhista/        # Documentos por área de direito
+├── 04. Tributário/
+├── 08. Previdenciário/
+└── [outras pastas...]
 ```
+
+**Localização dos documentos DOCX:**
+- `/Users/william/development/legalwise/rag-system/list-docx`
 
 ## Contribuindo
 

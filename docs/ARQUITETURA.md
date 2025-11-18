@@ -46,7 +46,7 @@ PostgreSQL (Supabase) - Tabela lw_embeddings
 
 **Script:** `extract_docs.py`
 
-- **Input:** Arquivos DOCX em estrutura de pastas
+- **Input:** Arquivos DOCX em `/Users/william/development/legalwise/rag-system/list-docx`
 - **Output:** `docs_raw.jsonl`
 - **Processo:**
   - Varredura recursiva de diretórios

@@ -8,6 +8,9 @@ O objetivo principal é criar um sistema RAG que sirva como base de conhecimento
 
 ## Estrutura do Projeto
 
+Os documentos DOCX estão localizados em:
+- `/Users/william/development/legalwise/rag-system/list-docx`
+
 O projeto está organizado em pastas por área de direito:
 - `01. Trabalhista/` até `25. Contratos/`
 - Cada pasta contém documentos DOCX organizados por tipo de peça jurídica
@@ -18,7 +21,7 @@ O pipeline atual segue os seguintes passos:
 
 ### 1. Extração de Documentos (`extract_docs.py`)
 
-**Arquivo de entrada:** Documentos DOCX nas pastas do projeto  
+**Arquivo de entrada:** Documentos DOCX em `/Users/william/development/legalwise/rag-system/list-docx`  
 **Arquivo de saída:** `docs_raw.jsonl`
 
 **O que faz:**
@@ -234,16 +237,8 @@ Principais bibliotecas Python utilizadas:
 ## Estrutura de Diretórios
 
 ```
-legalwise-curadoria-modelos/
+lw-rag-system/                     # Projeto principal
 ├── docs/                          # Documentação (esta pasta)
-├── 01. Trabalhista/               # Documentos trabalhistas
-├── 04. Tributário/                # Documentos tributários
-├── 07. Consumidor/                # Documentos de direito do consumidor
-├── 08. Previdenciário/            # Documentos previdenciários
-├── 13. Civil/                     # Documentos de direito civil
-├── 14. Comercial/                  # Documentos comerciais
-├── 18. Empresarial e Societário/  # Documentos empresariais
-├── 25. Contratos/                  # Contratos diversos
 ├── extract_docs.py                # Script de extração
 ├── filter_docs.py                 # Script de filtragem
 ├── classify_docs_v3.py            # Script de classificação
@@ -252,5 +247,19 @@ legalwise-curadoria-modelos/
 ├── create_embeddings.py           # Geração de embeddings
 ├── import_embeddings_supabase.py  # Importação para Supabase
 └── [arquivos de dados .jsonl e .csv]
+
+list-docx/                         # Pasta com documentos DOCX (separada)
+├── 01. Trabalhista/               # Documentos trabalhistas
+├── 04. Tributário/                # Documentos tributários
+├── 07. Consumidor/                # Documentos de direito do consumidor
+├── 08. Previdenciário/            # Documentos previdenciários
+├── 13. Civil/                     # Documentos de direito civil
+├── 14. Comercial/                  # Documentos comerciais
+├── 18. Empresarial e Societário/  # Documentos empresariais
+├── 25. Contratos/                  # Contratos diversos
+└── [outras pastas por área de direito]
 ```
+
+**Localização dos documentos DOCX:**
+- `/Users/william/development/legalwise/rag-system/list-docx`
 

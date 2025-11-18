@@ -4,16 +4,6 @@
 1[0-9]. */
 2[0-5]. */
 
-# Pastas específicas (garantia)
-01. Trabalhista/
-04. Tributário/
-07. Consumidor/
-08. Previdenciário/
-13. Civil/
-14. Comercial/
-18. Empresarial e Societário/
-25. Contratos*/
-
 # Ambiente virtual Python
 venv/
 env/

@@ -16,7 +16,7 @@ python extract_docs.py
 ```
 
 **Configuração:**
-- `BASE_DIR`: Diretório base para busca (padrão: diretório atual)
+- `BASE_DIR`: Diretório base para busca (padrão: `/Users/william/development/legalwise/rag-system/list-docx`)
 - `OUTPUT_FILE`: Nome do arquivo de saída (padrão: `docs_raw.jsonl`)
 
 **Output:**

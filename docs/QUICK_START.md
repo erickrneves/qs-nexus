@@ -152,8 +152,14 @@ pip install python-docx openai tqdm psycopg2-binary
 
 Certifique-se de estar no diretório correto:
 ```bash
-cd /caminho/para/legalwise-curadoria-modelos
+cd /Users/william/development/legalwise/rag-system/lw-rag-system
 ```
+
+**Nota:** Os arquivos DOCX estão localizados em:
+```bash
+/Users/william/development/legalwise/rag-system/list-docx
+```
+O script `extract_docs.py` está configurado para buscar os documentos nesta pasta automaticamente.
 
 ### Classificação muito lenta
 

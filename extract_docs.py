@@ -4,9 +4,10 @@ from pathlib import Path
 from docx import Document
 from tqdm import tqdm
 
-# Base = pasta atual onde você está rodando o script
+# Base = pasta onde estão os arquivos DOCX
+# Localização: /Users/william/development/legalwise/rag-system/list-docx
 # Ele vai varrer TODAS as subpastas (04. Tributário, 08. Previdenciário, etc.)
-BASE_DIR = Path(".").resolve()
+BASE_DIR = Path("/Users/william/development/legalwise/rag-system/list-docx").resolve()
 
 OUTPUT_FILE = "docs_raw.jsonl"
 
