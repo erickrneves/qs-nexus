@@ -32,6 +32,11 @@ EMBEDDING_MODEL=text-embedding-3-small
 BATCH_SIZE=64
 CHUNK_MAX_TOKENS=800
 
+# Processamento Paralelo
+WORKER_CONCURRENCY=6          # Número de workers paralelos (padrão: 6)
+DB_MAX_CONNECTIONS=20         # Máximo de conexões do pool do banco (padrão: 20)
+MAX_RETRIES=3                 # Tentativas de retry em caso de falha (padrão: 3)
+
 # Filtros
 MIN_WORDS=300
 MAX_WORDS=25000
