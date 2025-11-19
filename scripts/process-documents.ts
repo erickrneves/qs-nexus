@@ -6,6 +6,7 @@ import * as dotenv from 'dotenv';
 import {
   checkFileProcessed,
   markFileProcessing,
+  markFileRejected,
   calculateFileHash,
   normalizeFilePath,
   saveTemporaryMarkdown,
@@ -111,6 +112,24 @@ function convertDocxWithWorker(filePath: string): Promise<{ markdown: string; wo
 }
 
 /**
+ * Verifica se o erro indica que o arquivo está corrompido ou inválido
+ */
+function isFileCorruptionError(error: Error | string): boolean {
+  const errorMsg = typeof error === 'string' ? error : error.message;
+  const lowerMsg = errorMsg.toLowerCase();
+  
+  // Padrões de erro que indicam arquivo corrompido/inválido
+  return (
+    lowerMsg.includes('could not find the body element') ||
+    lowerMsg.includes('corrupted zip') ||
+    lowerMsg.includes("can't find end of central directory") ||
+    lowerMsg.includes('end of data reached') ||
+    lowerMsg.includes('is this a docx file') ||
+    lowerMsg.includes('is this a zip file')
+  );
+}
+
+/**
  * Processa um documento individual
  */
 async function processDocument(filePath: string): Promise<ProcessResult | null> {
@@ -122,10 +141,15 @@ async function processDocument(filePath: string): Promise<ProcessResult | null> 
     if (DEBUG) console.error(`[PROCESS] Iniciando: ${fileName}`);
     const fileHash = calculateFileHash(filePath);
     
-    // Verifica se já foi processado
+    // Verifica se já foi processado ou rejeitado
     const existing = await checkFileProcessed(normalizedPath, fileHash);
-    if (existing && existing.status === 'completed') {
-      return null; // Já processado, pula
+    if (existing) {
+      if (existing.status === 'completed') {
+        return null; // Já processado, pula
+      }
+      if (existing.status === 'rejected') {
+        return null; // Já rejeitado, pula
+      }
     }
 
     // Converte DOCX → Markdown usando Worker Thread
@@ -154,6 +178,7 @@ async function processDocument(filePath: string): Promise<ProcessResult | null> 
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error(`[PROCESS] ERRO em ${fileName}: ${errorMsg}`);
+    
     if (DEBUG && error instanceof Error) {
       console.error(`[PROCESS] Stack: ${error.stack}`);
     }
@@ -181,6 +206,25 @@ async function main() {
         `\r📊 Progresso: ${stats.completed}/${stats.total} (${progress}%) | ` +
         `Em processamento: ${stats.inProgress} | Falhas: ${stats.failed}`
       );
+    },
+    onTaskFailed: async (taskId, errorMessage) => {
+      // Extrai o filePath do taskId (formato: file-{index}-{filePath})
+      const match = taskId.match(/^file-\d+-(.+)$/);
+      if (match) {
+        const filePath = match[1];
+        const normalizedPath = normalizeFilePath(filePath, PROJECT_ROOT);
+        
+        // Se for erro de arquivo corrompido/inválido, marca como rejeitado
+        if (isFileCorruptionError(errorMessage)) {
+          try {
+            await markFileRejected(normalizedPath, errorMessage);
+            const fileName = filePath.split('/').pop() || normalizedPath;
+            console.error(`[POOL] Arquivo marcado como rejeitado: ${fileName}`);
+          } catch (rejectError) {
+            console.error(`[POOL] Erro ao marcar como rejeitado: ${rejectError}`);
+          }
+        }
+      }
     },
   });
 

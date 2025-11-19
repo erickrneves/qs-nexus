@@ -33,17 +33,20 @@ export class ConcurrencyPool<T> {
   private maxRetries: number;
   private retryDelay: number;
   private onProgress?: (stats: PoolStats) => void;
+  private onTaskFailed?: (taskId: string, error: string) => void | Promise<void>;
 
   constructor(options: {
     maxConcurrency?: number;
     maxRetries?: number;
     retryDelay?: number;
     onProgress?: (stats: PoolStats) => void;
+    onTaskFailed?: (taskId: string, error: string) => void | Promise<void>;
   } = {}) {
     this.maxConcurrency = options.maxConcurrency || 4;
     this.maxRetries = options.maxRetries || 3;
     this.retryDelay = options.retryDelay || 1000;
     this.onProgress = options.onProgress;
+    this.onTaskFailed = options.onTaskFailed;
   }
 
   /**
@@ -126,6 +129,16 @@ export class ConcurrencyPool<T> {
 
       // Esgotou tentativas, marca como falha
       console.error(`[POOL] Falha final após ${attempt + 1} tentativas: ${taskId.substring(0, 50)}... - ${errorMessage}`);
+      
+      // Chama callback de falha definitiva se fornecido
+      if (this.onTaskFailed) {
+        try {
+          await this.onTaskFailed(taskId, errorMessage);
+        } catch (callbackError) {
+          console.error(`[POOL] Erro no callback onTaskFailed: ${callbackError}`);
+        }
+      }
+      
       this.results.set(taskId, {
         taskId,
         success: false,
