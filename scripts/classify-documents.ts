@@ -2,6 +2,7 @@ import * as dotenv from 'dotenv';
 import { db } from '../lib/db/index.js';
 import { documentFiles, templates } from '../lib/db/schema/rag.js';
 import { eq } from 'drizzle-orm';
+import type { InferSelectModel } from 'drizzle-orm';
 import {
   classifyDocument,
   createTemplateDocument,
@@ -28,7 +29,7 @@ interface ClassifyResult {
 /**
  * Classifica um documento individual
  */
-async function classifyDocumentTask(file: Awaited<ReturnType<typeof db.select<typeof documentFiles>>>[0]): Promise<ClassifyResult> {
+async function classifyDocumentTask(file: InferSelectModel<typeof documentFiles>): Promise<ClassifyResult> {
   // Busca template existente (se houver)
   const existingTemplate = await db
     .select()

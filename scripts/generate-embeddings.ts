@@ -2,6 +2,7 @@ import * as dotenv from 'dotenv';
 import { db } from '../lib/db/index.js';
 import { templates, templateChunks } from '../lib/db/schema/rag.js';
 import { eq } from 'drizzle-orm';
+import type { InferSelectModel } from 'drizzle-orm';
 import { chunkMarkdown } from '../lib/services/chunker.js';
 import { generateEmbeddings } from '../lib/services/embedding-generator.js';
 import { storeChunks } from '../lib/services/store-embeddings.js';
@@ -23,7 +24,7 @@ interface EmbedResult {
 /**
  * Gera embeddings para um template individual
  */
-async function generateEmbeddingsTask(template: Awaited<ReturnType<typeof db.select<typeof templates>>>[0]): Promise<EmbedResult> {
+async function generateEmbeddingsTask(template: InferSelectModel<typeof templates>): Promise<EmbedResult> {
   // Verifica se já tem chunks com embeddings
   const existingChunks = await db
     .select()

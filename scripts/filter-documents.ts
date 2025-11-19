@@ -2,6 +2,7 @@ import * as dotenv from 'dotenv';
 import { db } from '../lib/db/index.js';
 import { documentFiles } from '../lib/db/schema/rag.js';
 import { eq } from 'drizzle-orm';
+import type { InferSelectModel } from 'drizzle-orm';
 import {
   markFileRejected,
   getFileByPath,
@@ -23,7 +24,7 @@ interface FilterResult {
 /**
  * Filtra um documento individual
  */
-async function filterDocumentTask(file: Awaited<ReturnType<typeof db.select<typeof documentFiles>>>[0]): Promise<FilterResult> {
+async function filterDocumentTask(file: InferSelectModel<typeof documentFiles>): Promise<FilterResult> {
   if (!file.wordsCount) {
     return {
       filePath: file.filePath,
