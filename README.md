@@ -29,6 +29,7 @@ Para instruções detalhadas de setup, consulte [docs/SETUP.md](./docs/SETUP.md)
 ### Resumo Rápido:
 
 1. **Habilitar pgvector no Neon:**
+
    ```sql
    CREATE EXTENSION IF NOT EXISTS vector;
    ```
@@ -39,6 +40,7 @@ Para instruções detalhadas de setup, consulte [docs/SETUP.md](./docs/SETUP.md)
    ```
 
 Isso criará as tabelas:
+
 - `document_files`: Tracking de arquivos processados
 - `templates`: Documentos processados (TemplateDocument)
 - `template_chunks`: Chunks com embeddings para RAG
@@ -128,4 +130,3 @@ Toda a documentação está na pasta [`docs/`](./docs/):
 - Arquivos rejeitados nunca são reprocessados
 - Caminhos são sempre relativos ao root do projeto
 - Relatório de status é gerado em `processing-status.json`
-

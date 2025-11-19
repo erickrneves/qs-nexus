@@ -1,7 +1,8 @@
 import { embedMany } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-const embeddingModel = openai.embedding('text-embedding-3-small');
+const embeddingModelName = process.env.EMBEDDING_MODEL || 'text-embedding-3-small';
+const embeddingModel = openai.embedding(embeddingModelName);
 
 export interface EmbeddingResult {
   embedding: number[];
@@ -57,11 +58,11 @@ export async function generateEmbeddings(
  * Gera embedding para um único texto
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
-  const { embedding } = await embedMany({
+  const { embeddings } = await embedMany({
     model: embeddingModel,
     values: [text],
   });
 
-  return embedding[0];
+  return embeddings[0];
 }
 

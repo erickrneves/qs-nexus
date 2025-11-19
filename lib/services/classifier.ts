@@ -58,19 +58,32 @@ Analise o documento fornecido e extraia as seguintes informações:
 Use apenas as informações presentes no documento. Seja preciso e objetivo.`;
 
 export async function classifyDocument(
-  markdown: string,
-  maxChars: number = 12000
+  markdown: string
 ): Promise<ClassificationResult> {
-  // Limita o tamanho do texto para a API
-  const truncatedMarkdown = markdown.length > maxChars 
-    ? markdown.substring(0, maxChars) + '\n\n[... documento truncado ...]'
-    : markdown;
-
   try {
     const { object } = await generateObject({
-      model: openai('gpt-4o-mini'),
+      model: openai('gpt-5'),
       schema: ClassificationSchema,
-      prompt: `${SYSTEM_PROMPT}\n\nDocumento:\n\n${truncatedMarkdown}`,
+      messages: [
+        {
+          role: 'system',
+          content: SYSTEM_PROMPT,
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Analise o documento anexado e classifique-o conforme as instruções.',
+            },
+            {
+              type: 'file',
+              data: new Uint8Array(Buffer.from(markdown, 'utf-8')),
+              mimeType: 'text/markdown',
+            },
+          ],
+        },
+      ],
     });
 
     return object;
@@ -78,7 +91,7 @@ export async function classifyDocument(
     // Retry logic
     if (error instanceof Error && error.message.includes('rate limit')) {
       await new Promise(resolve => setTimeout(resolve, 5000));
-      return classifyDocument(markdown, maxChars);
+      return classifyDocument(markdown);
     }
     throw error;
   }

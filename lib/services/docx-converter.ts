@@ -1,4 +1,4 @@
-import mammoth from 'mammoth';
+import * as mammoth from 'mammoth';
 import { readFileSync } from 'node:fs';
 
 export interface ConversionResult {
@@ -12,10 +12,10 @@ export interface ConversionResult {
 export async function convertDocxToMarkdown(filePath: string): Promise<ConversionResult> {
   try {
     const buffer = readFileSync(filePath);
-    const result = await mammoth.convertToMarkdown({ buffer });
+    const result = await (mammoth as any).convertToMarkdown({ buffer });
     
     const markdown = result.value;
-    const wordCount = markdown.split(/\s+/).filter(word => word.length > 0).length;
+    const wordCount = markdown.split(/\s+/).filter((word: string) => word.length > 0).length;
 
     return {
       markdown: markdown.trim(),
