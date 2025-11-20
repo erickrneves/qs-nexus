@@ -3,7 +3,7 @@
     "target": "ES2022",
     "module": "ESNext",
     "lib": ["ES2022"],
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "allowJs": true,
     "outDir": "./dist",
@@ -17,10 +17,25 @@
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./lib/*"]
-    }
+      "@/*": ["./*"]
+    },
+    "jsx": "preserve",
+    "noEmit": true,
+    "incremental": true,
+    "isolatedModules": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
-  "include": ["lib/**/*", "scripts/**/*"],
-  "exclude": ["node_modules", "dist", "venv"]
+  "include": [
+    "lib/**/*",
+    "scripts/**/*",
+    "app/**/*",
+    "components/**/*",
+    "hooks/**/*",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules", "dist", "venv", ".next"]
 }
-

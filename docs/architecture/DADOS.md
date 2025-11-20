@@ -74,7 +74,7 @@ CREATE INDEX idx_templates_area ON templates(area);
 CREATE INDEX idx_template_chunks_template_id ON template_chunks(template_id);
 
 -- Índice HNSW para busca vetorial
-CREATE INDEX idx_template_chunks_embedding_hnsw ON template_chunks 
+CREATE INDEX idx_template_chunks_embedding_hnsw ON template_chunks
 USING hnsw (embedding vector_cosine_ops)
 WITH (m = 16, ef_construction = 64);
 ```
@@ -82,6 +82,7 @@ WITH (m = 16, ef_construction = 64);
 ## Enums
 
 ### file_status
+
 - `pending`: Aguardando processamento
 - `processing`: Em processamento
 - `completed`: Processado com sucesso
@@ -89,6 +90,7 @@ WITH (m = 16, ef_construction = 64);
 - `rejected`: Rejeitado (nunca será reprocessado)
 
 ### doc_type
+
 - `peticao_inicial`
 - `contestacao`
 - `recurso`
@@ -98,6 +100,7 @@ WITH (m = 16, ef_construction = 64);
 - `outro`
 
 ### area
+
 - `civil`
 - `trabalhista`
 - `tributario`
@@ -109,6 +112,7 @@ WITH (m = 16, ef_construction = 64);
 - `outro`
 
 ### complexity
+
 - `simples`
 - `medio`
 - `complexo`
@@ -119,7 +123,7 @@ WITH (m = 16, ef_construction = 64);
 
 ```sql
 -- Busca chunks similares a uma query
-SELECT 
+SELECT
   tc.content_markdown,
   t.title,
   t.doc_type,
@@ -146,7 +150,7 @@ ORDER BY chunk_index;
 
 ```sql
 -- Status geral
-SELECT 
+SELECT
   status,
   COUNT(*) as total
 FROM document_files

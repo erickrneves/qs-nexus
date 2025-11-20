@@ -16,6 +16,7 @@ O sistema RAG foi paralelizado para melhorar significativamente a performance do
 - **Ganho de Performance**: ~6x mais rápido
 
 **Como funciona**:
+
 1. Encontra todos os arquivos DOCX
 2. Cria um pool com limite de concorrência
 3. Cada tarefa cria um Worker Thread para conversão
@@ -32,6 +33,7 @@ O sistema RAG foi paralelizado para melhorar significativamente a performance do
 - **Rate Limiting**: Limite conservador para evitar rate limits
 
 **Como funciona**:
+
 1. Busca arquivos em status `processing`
 2. Cria pool com limite de 3 workers (conservador para API)
 3. Cada tarefa classifica um documento via OpenAI
@@ -48,6 +50,7 @@ O sistema RAG foi paralelizado para melhorar significativamente a performance do
 - **Rate Limiting**: Limite moderado para respeitar rate limits
 
 **Como funciona**:
+
 1. Busca todos os templates
 2. Cria pool com limite de 2 workers (moderado para API)
 3. Cada tarefa gera embeddings para um template (batch de 64 chunks)
@@ -64,6 +67,7 @@ O sistema RAG foi paralelizado para melhorar significativamente a performance do
 - **Rate Limiting**: Não aplicável (operações rápidas no banco)
 
 **Como funciona**:
+
 1. Busca arquivos em status `processing`
 2. Cria pool com limite de 10 workers (alto, operações rápidas)
 3. Cada tarefa verifica wordCount e marca como rejeitado se necessário
@@ -89,6 +93,7 @@ MAX_RETRIES=3                 # Tentativas de retry (padrão: 3)
 #### Para APIs Externas (OpenAI)
 
 **classify-documents** e **generate-embeddings**:
+
 - **Conservador**: 2-3 workers (evita rate limits)
 - **Moderado**: 3-5 workers (se tiver rate limits generosos)
 - **Agressivo**: 5-10 workers (não recomendado, pode causar rate limits)
@@ -96,10 +101,12 @@ MAX_RETRIES=3                 # Tentativas de retry (padrão: 3)
 #### Para Operações Locais
 
 **process-documents**:
+
 - **Recomendado**: Número de cores da CPU (4-8)
 - **Máximo**: 2x número de cores (pode causar thrashing)
 
 **filter-documents**:
+
 - **Recomendado**: 10-20 (operações rápidas no banco)
 - **Máximo**: Limitado por conexões do banco (`DB_MAX_CONNECTIONS`)
 
@@ -181,6 +188,7 @@ DEBUG=true
 ```
 
 Isso exibe:
+
 - Stack traces completos
 - Logs de retry
 - Informações de cada tentativa
@@ -192,6 +200,7 @@ Isso exibe:
 **Sintoma**: Muitos erros de rate limit
 
 **Solução**:
+
 1. Reduza `CLASSIFY_CONCURRENCY` ou `EMBED_CONCURRENCY`
 2. Aumente `MAX_RETRIES` para mais tentativas
 3. Verifique se há outros processos usando a mesma API key
@@ -201,6 +210,7 @@ Isso exibe:
 **Sintoma**: Workers não completam, timeouts frequentes
 
 **Solução**:
+
 1. Reduza `WORKER_CONCURRENCY`
 2. Verifique se há arquivos corrompidos
 3. Aumente timeout (atualmente 60s)
@@ -210,6 +220,7 @@ Isso exibe:
 **Sintoma**: Erros de conexão, lentidão
 
 **Solução**:
+
 1. Reduza `FILTER_CONCURRENCY`
 2. Aumente `DB_MAX_CONNECTIONS` no `.env.local`
 3. Verifique conexões simultâneas no banco
@@ -219,6 +230,7 @@ Isso exibe:
 **Sintoma**: Erros de memória, crashes
 
 **Solução**:
+
 1. Reduza concorrência geral
 2. Processe em lotes menores
 3. Aumente memória disponível
@@ -237,4 +249,3 @@ Isso exibe:
 - [ ] Auto-ajuste de concorrência baseado em rate limits
 - [ ] Dashboard de progresso em tempo real
 - [ ] Alertas para erros frequentes
-

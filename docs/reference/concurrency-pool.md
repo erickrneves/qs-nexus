@@ -22,9 +22,9 @@ O `ConcurrencyPool` é uma classe utilitária que gerencia processamento paralel
 
 ```typescript
 interface Task<T> {
-  id: string;                    // Identificador único da tarefa
-  execute: () => Promise<T>;     // Função que executa a tarefa
-  retries?: number;              // Número de tentativas (opcional)
+  id: string // Identificador único da tarefa
+  execute: () => Promise<T> // Função que executa a tarefa
+  retries?: number // Número de tentativas (opcional)
 }
 ```
 
@@ -32,11 +32,11 @@ interface Task<T> {
 
 ```typescript
 interface TaskResult<T> {
-  taskId: string;
-  success: boolean;
-  result?: T;
-  error?: string;
-  retries: number;
+  taskId: string
+  success: boolean
+  result?: T
+  error?: string
+  retries: number
 }
 ```
 
@@ -44,45 +44,45 @@ interface TaskResult<T> {
 
 ```typescript
 interface PoolStats {
-  total: number;        // Total de tarefas
-  completed: number;   // Tarefas completadas com sucesso
-  failed: number;      // Tarefas que falharam
-  inProgress: number;  // Tarefas em execução
-  pending: number;     // Tarefas aguardando
+  total: number // Total de tarefas
+  completed: number // Tarefas completadas com sucesso
+  failed: number // Tarefas que falharam
+  inProgress: number // Tarefas em execução
+  pending: number // Tarefas aguardando
 }
 ```
 
 ## Uso Básico
 
 ```typescript
-import { ConcurrencyPool, Task } from '../lib/utils/concurrency-pool.js';
+import { ConcurrencyPool, Task } from '../lib/utils/concurrency-pool.js'
 
 // Cria pool com limite de concorrência
 const pool = new ConcurrencyPool<ResultType>({
-  maxConcurrency: 5,        // Máximo de 5 tarefas simultâneas
-  maxRetries: 3,            // 3 tentativas em caso de falha
-  retryDelay: 1000,         // 1 segundo de delay inicial
-  onProgress: (stats) => {
-    console.log(`Progresso: ${stats.completed}/${stats.total}`);
+  maxConcurrency: 5, // Máximo de 5 tarefas simultâneas
+  maxRetries: 3, // 3 tentativas em caso de falha
+  retryDelay: 1000, // 1 segundo de delay inicial
+  onProgress: stats => {
+    console.log(`Progresso: ${stats.completed}/${stats.total}`)
   },
   onTaskFailed: async (taskId, error) => {
-    console.error(`Tarefa ${taskId} falhou: ${error}`);
+    console.error(`Tarefa ${taskId} falhou: ${error}`)
   },
-});
+})
 
 // Adiciona tarefas
 const tasks: Task<ResultType>[] = items.map((item, index) => ({
   id: `task-${index}`,
   execute: async () => {
     // Lógica da tarefa
-    return processItem(item);
+    return processItem(item)
   },
-}));
+}))
 
-pool.addBatch(tasks);
+pool.addBatch(tasks)
 
 // Processa todas as tarefas
-const results = await pool.processAll();
+const results = await pool.processAll()
 ```
 
 ## Configuração
@@ -111,51 +111,51 @@ Após esgotar todas as tentativas, a tarefa é marcada como falha e o callback `
 
 ```typescript
 const pool = new ConcurrencyPool<ProcessResult | null>({
-  maxConcurrency: WORKER_CONCURRENCY,  // Padrão: 6
+  maxConcurrency: WORKER_CONCURRENCY, // Padrão: 6
   maxRetries: parseInt(process.env.MAX_RETRIES || '3', 10),
-  onProgress: (stats) => {
+  onProgress: stats => {
     // Exibe progresso em tempo real
   },
   onTaskFailed: async (taskId, errorMessage) => {
     // Marca arquivo como rejeitado se for erro de corrupção
   },
-});
+})
 ```
 
 ### classify-documents.ts
 
 ```typescript
 const pool = new ConcurrencyPool<ClassifyResult>({
-  maxConcurrency: CLASSIFY_CONCURRENCY,  // Padrão: 3
+  maxConcurrency: CLASSIFY_CONCURRENCY, // Padrão: 3
   maxRetries: parseInt(process.env.MAX_RETRIES || '3', 10),
-  onProgress: (stats) => {
+  onProgress: stats => {
     // Exibe progresso em tempo real
   },
-});
+})
 ```
 
 ### generate-embeddings.ts
 
 ```typescript
 const pool = new ConcurrencyPool<EmbedResult>({
-  maxConcurrency: EMBED_CONCURRENCY,  // Padrão: 2
+  maxConcurrency: EMBED_CONCURRENCY, // Padrão: 2
   maxRetries: parseInt(process.env.MAX_RETRIES || '3', 10),
-  onProgress: (stats) => {
+  onProgress: stats => {
     // Exibe progresso em tempo real
   },
-});
+})
 ```
 
 ### filter-documents.ts
 
 ```typescript
 const pool = new ConcurrencyPool<FilterResult>({
-  maxConcurrency: FILTER_CONCURRENCY,  // Padrão: 10
+  maxConcurrency: FILTER_CONCURRENCY, // Padrão: 10
   maxRetries: parseInt(process.env.MAX_RETRIES || '3', 10),
-  onProgress: (stats) => {
+  onProgress: stats => {
     // Exibe progresso em tempo real
   },
-});
+})
 ```
 
 ## Variáveis de Ambiente
@@ -202,6 +202,7 @@ DEBUG=true
 ```
 
 Isso exibe:
+
 - Stack traces completos de erros
 - Logs de retry com delays
 - Informações detalhadas de cada tentativa
@@ -231,52 +232,51 @@ Limpa a fila e resultados (útil para resetar o pool).
 ## Exemplo Completo
 
 ```typescript
-import { ConcurrencyPool, Task } from '../lib/utils/concurrency-pool.js';
+import { ConcurrencyPool, Task } from '../lib/utils/concurrency-pool.js'
 
 interface ProcessResult {
-  id: string;
-  success: boolean;
+  id: string
+  success: boolean
 }
 
 async function processItems(items: string[]) {
   const pool = new ConcurrencyPool<ProcessResult>({
     maxConcurrency: 5,
     maxRetries: 3,
-    onProgress: (stats) => {
-      const progress = Math.round((stats.completed / stats.total) * 100);
+    onProgress: stats => {
+      const progress = Math.round((stats.completed / stats.total) * 100)
       process.stdout.write(
         `\rProgresso: ${stats.completed}/${stats.total} (${progress}%) | ` +
-        `Em processamento: ${stats.inProgress} | Falhas: ${stats.failed}`
-      );
+          `Em processamento: ${stats.inProgress} | Falhas: ${stats.failed}`
+      )
     },
     onTaskFailed: async (taskId, error) => {
-      console.error(`\nTarefa ${taskId} falhou após todas as tentativas: ${error}`);
+      console.error(`\nTarefa ${taskId} falhou após todas as tentativas: ${error}`)
     },
-  });
+  })
 
   const tasks: Task<ProcessResult>[] = items.map((item, index) => ({
     id: `item-${index}`,
     execute: async () => {
       // Simula processamento
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1000))
       return {
         id: item,
         success: true,
-      };
+      }
     },
-  }));
+  }))
 
-  pool.addBatch(tasks);
+  pool.addBatch(tasks)
 
-  const startTime = Date.now();
-  const results = await pool.processAll();
-  const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+  const startTime = Date.now()
+  const results = await pool.processAll()
+  const duration = ((Date.now() - startTime) / 1000).toFixed(2)
 
-  console.log(`\n\nProcessamento concluído em ${duration}s`);
-  console.log(`Sucessos: ${results.filter(r => r.success).length}`);
-  console.log(`Falhas: ${results.filter(r => !r.success).length}`);
+  console.log(`\n\nProcessamento concluído em ${duration}s`)
+  console.log(`Sucessos: ${results.filter(r => r.success).length}`)
+  console.log(`Falhas: ${results.filter(r => !r.success).length}`)
 
-  return results;
+  return results
 }
 ```
-

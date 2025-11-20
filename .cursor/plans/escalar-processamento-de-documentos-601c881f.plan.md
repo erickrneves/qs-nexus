@@ -1,4 +1,5 @@
 <!-- 601c881f-41db-49ad-b022-cbe52a685142 1dc084d6-f2cb-4bc1-809a-e4b5ff442f00 -->
+
 # Paralelizar Scripts do Pipeline RAG
 
 ## Análise dos Scripts

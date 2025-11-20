@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod'
 
 export const TemplateDocumentSchema = z.object({
   id: z.string().optional(),
@@ -10,7 +10,7 @@ export const TemplateDocumentSchema = z.object({
     'parecer',
     'contrato',
     'modelo_generico',
-    'outro'
+    'outro',
   ]),
   area: z.enum([
     'civil',
@@ -21,7 +21,7 @@ export const TemplateDocumentSchema = z.object({
     'penal',
     'administrativo',
     'previdenciario',
-    'outro'
+    'outro',
   ]),
   jurisdiction: z.string().default('BR'),
   complexity: z.enum(['simples', 'medio', 'complexo']),
@@ -32,7 +32,6 @@ export const TemplateDocumentSchema = z.object({
   qualityScore: z.number().min(0).max(100).optional(),
   isGold: z.boolean().default(false),
   isSilver: z.boolean().default(false),
-});
+})
 
-export type TemplateDocument = z.infer<typeof TemplateDocumentSchema>;
-
+export type TemplateDocument = z.infer<typeof TemplateDocumentSchema>

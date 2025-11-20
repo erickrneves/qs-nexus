@@ -24,25 +24,27 @@ Arquivos ficavam presos em status `processing` sem serem processados ou marcados
 #### Mudanças Realizadas
 
 **a) Verificação de arquivos em processing sem markdown:**
+
 - Adicionada verificação se arquivo já está em `processing` mas não tem markdown temporário
 - Se não tiver markdown, tenta processar novamente (pode ter sido falha temporária)
 - Se tiver markdown, considera já processado e pula
 
 ```typescript
-// Se está como "processing" mas não tem markdown temporário, 
+// Se está como "processing" mas não tem markdown temporário,
 // significa que falhou anteriormente - vamos tentar processar novamente
 if (existing.status === 'processing') {
-  const existingMarkdown = readTemporaryMarkdown(existing.fileHash);
+  const existingMarkdown = readTemporaryMarkdown(existing.fileHash)
   if (!existingMarkdown) {
     // Continua para tentar processar novamente
   } else {
     // Tem markdown, já foi processado com sucesso
-    return null;
+    return null
   }
 }
 ```
 
 **b) Melhorias no callback `onTaskFailed`:**
+
 - Logs mais detalhados ao marcar como rejeitado
 - Tratamento de erros ao marcar como rejeitado
 - Validação da extração do `filePath` do `taskId`
@@ -50,21 +52,21 @@ if (existing.status === 'processing') {
 
 ```typescript
 onTaskFailed: async (taskId, errorMessage) => {
-  const match = taskId.match(/^file-\d+-(.+)$/);
+  const match = taskId.match(/^file-\d+-(.+)$/)
   if (match) {
-    const filePath = match[1];
-    const normalizedPath = normalizeFilePath(filePath, PROJECT_ROOT);
-    
+    const filePath = match[1]
+    const normalizedPath = normalizeFilePath(filePath, PROJECT_ROOT)
+
     try {
-      await markFileRejected(normalizedPath, errorMessage);
-      console.error(`[POOL] ✅ Arquivo marcado como rejeitado: ${fileName}`);
-      console.error(`[POOL]    Motivo: ${errorMessage.substring(0, 100)}...`);
+      await markFileRejected(normalizedPath, errorMessage)
+      console.error(`[POOL] ✅ Arquivo marcado como rejeitado: ${fileName}`)
+      console.error(`[POOL]    Motivo: ${errorMessage.substring(0, 100)}...`)
     } catch (rejectError) {
-      console.error(`[POOL] ❌ ERRO ao marcar como rejeitado: ${fileName}`);
+      console.error(`[POOL] ❌ ERRO ao marcar como rejeitado: ${fileName}`)
       // Logs detalhados do erro
     }
   } else {
-    console.error(`[POOL] ⚠️  Não foi possível extrair filePath do taskId: ${taskId}`);
+    console.error(`[POOL] ⚠️  Não foi possível extrair filePath do taskId: ${taskId}`)
   }
 }
 ```
@@ -80,23 +82,27 @@ onTaskFailed: async (taskId, errorMessage) => {
 #### Mudanças Realizadas
 
 **a) Tratamento de erros na função `classifyDocumentTask`:**
+
 - Adicionado `try-catch` para capturar erros durante a classificação
 - Erros são re-lançados para que o `ConcurrencyPool` possa tratá-los
 - Logs de erro detalhados
 
 ```typescript
-async function classifyDocumentTask(file: InferSelectModel<typeof documentFiles>): Promise<ClassifyResult> {
+async function classifyDocumentTask(
+  file: InferSelectModel<typeof documentFiles>
+): Promise<ClassifyResult> {
   try {
     // ... lógica de classificação ...
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error(`[CLASSIFY] ERRO ao classificar ${file.filePath}: ${errorMsg}`);
-    throw new Error(`Erro ao classificar ${file.filePath}: ${errorMsg}`);
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    console.error(`[CLASSIFY] ERRO ao classificar ${file.filePath}: ${errorMsg}`)
+    throw new Error(`Erro ao classificar ${file.filePath}: ${errorMsg}`)
   }
 }
 ```
 
 **b) Callback `onTaskFailed` no `ConcurrencyPool`:**
+
 - Extrai `fileId` do `taskId` (formato: `classify-{fileId}`)
 - Busca o arquivo no banco de dados
 - Marca como rejeitado com motivo descritivo
@@ -104,17 +110,17 @@ async function classifyDocumentTask(file: InferSelectModel<typeof documentFiles>
 
 ```typescript
 onTaskFailed: async (taskId, errorMessage) => {
-  const match = taskId.match(/^classify-(.+)$/);
+  const match = taskId.match(/^classify-(.+)$/)
   if (match) {
-    const fileId = match[1];
-    const file = await db.select().from(documentFiles).where(eq(documentFiles.id, fileId)).limit(1);
-    
+    const fileId = match[1]
+    const file = await db.select().from(documentFiles).where(eq(documentFiles.id, fileId)).limit(1)
+
     if (file[0]) {
       await markFileRejected(
         file[0].filePath,
         `Falha na classificação após múltiplas tentativas: ${errorMessage}`
-      );
-      console.error(`[POOL] ✅ Arquivo marcado como rejeitado: ${file[0].fileName}`);
+      )
+      console.error(`[POOL] ✅ Arquivo marcado como rejeitado: ${file[0].fileName}`)
     }
   }
 }
@@ -301,6 +307,7 @@ npm run rag:process
 ### Problema: Muitos arquivos em `processing`
 
 **Solução**:
+
 1. Execute `npm run rag:investigate` para entender o problema
 2. Execute `npm run rag:reject-failed` para limpar arquivos no limbo
 3. Execute `npm run rag:fix-status` para corrigir arquivos com template
@@ -310,6 +317,7 @@ npm run rag:process
 **Causa**: Arquivos podem estar sem markdown temporário ou já terem template
 
 **Solução**:
+
 1. Execute `npm run rag:investigate` para verificar
 2. Se sem markdown: execute `npm run rag:reset-missing` e depois `npm run rag:process`
 3. Se com template: execute `npm run rag:fix-status`
@@ -319,6 +327,7 @@ npm run rag:process
 **Causa**: Arquivos podem estar corrompidos ou ter problemas específicos
 
 **Solução**:
+
 1. Verifique logs detalhados com `DEBUG=true`
 2. Arquivos serão automaticamente marcados como rejeitados após todas as tentativas
 3. Execute `npm run rag:reject-failed` para limpar manualmente se necessário
@@ -329,4 +338,3 @@ npm run rag:process
 - [Guia de Paralelização](./paralelizacao.md) - Detalhes sobre processamento paralelo
 - [ConcurrencyPool](../reference/concurrency-pool.md) - Documentação do pool de concorrência
 - [README](../README.md) - Visão geral do sistema
-

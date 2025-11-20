@@ -9,28 +9,41 @@ docs/
 ├── INDEX.md                    # Este arquivo
 ├── README.md                   # Visão geral do sistema
 │
+├── implementation-progress/    # Progresso da Implementação (NOVO)
+│   ├── RESUMO-EXECUTIVO.md    # Resumo do progresso
+│   ├── fase-1-setup.md        # Progresso Fase 1
+│   ├── fase-2-autenticacao.md # Progresso Fase 2
+│   ├── fase-3-dashboard.md    # Progresso Fase 3
+│   ├── fase-4-upload.md       # Progresso Fase 4
+│   └── fase-5-lista-detalhes.md # Progresso Fase 5
+│
 ├── setup/                      # Configuração e Setup
 │   ├── SETUP.md               # Guia completo de configuração
 │   └── QUICK_START.md         # Guia rápido para começar
 │
 ├── architecture/               # Arquitetura e Dados
 │   ├── ARQUITETURA.md         # Arquitetura detalhada do sistema
-│   └── DADOS.md               # Estrutura de dados e schema
+│   ├── DADOS.md               # Estrutura de dados e schema
+│   └── DASHBOARD.md           # Arquitetura do Dashboard
 │
 ├── guides/                     # Guias de Uso
 │   ├── paralelizacao.md       # Guia de paralelização e performance
 │   ├── classificacao.md       # Guia de classificação de documentos
-│   └── troubleshooting.md    # Guia de troubleshooting e scripts utilitários
+│   ├── troubleshooting.md    # Guia de troubleshooting e scripts utilitários
+│   └── dashboard.md           # Guia de uso do Dashboard
 │
 └── reference/                  # Referência Técnica
     ├── concurrency-pool.md    # Documentação do ConcurrencyPool
-    └── worker-threads.md      # Documentação de Worker Threads
+    ├── worker-threads.md      # Documentação de Worker Threads
+    └── dashboard-api.md       # Referência de APIs do Dashboard
 ```
 
 ## Documentos Principais
 
 ### [README.md](./README.md)
+
 Visão geral completa do sistema:
+
 - Objetivo e arquitetura
 - Pipeline de processamento
 - Estrutura do banco de dados
@@ -39,14 +52,18 @@ Visão geral completa do sistema:
 ## Setup e Configuração
 
 ### [SETUP.md](./setup/SETUP.md)
+
 Guia completo de configuração:
+
 - Setup do Neon
 - Configuração de variáveis de ambiente
 - Execução de migrations
 - Troubleshooting
 
 ### [QUICK_START.md](./setup/QUICK_START.md)
+
 Guia rápido para começar:
+
 - Instalação
 - Configuração básica
 - Pipeline completo
@@ -55,57 +72,106 @@ Guia rápido para começar:
 ## Arquitetura
 
 ### [ARQUITETURA.md](./architecture/ARQUITETURA.md)
+
 Arquitetura detalhada do sistema:
+
 - Fluxo de dados
 - Componentes e serviços
 - Estrutura de dados
 - Decisões de design
 
 ### [DADOS.md](./architecture/DADOS.md)
+
 Estrutura de dados:
+
 - Schema do banco de dados
 - Enums e tipos
 - Operações de busca
 - Validação
 
+### [DASHBOARD.md](./architecture/DASHBOARD.md)
+
+Arquitetura do Dashboard:
+
+- Decisões de arquitetura (Next.js, NextAuth, Tailwind, shadcn/ui)
+- Estrutura de rotas (App Router)
+- Fluxo de autenticação
+- Estrutura de APIs
+- Fluxo RAG no chat
+- Integração com sistema RAG existente
+- Componentes e hooks
+
 ## Guias
 
 ### [paralelizacao.md](./guides/paralelizacao.md)
+
 Guia de paralelização e performance:
+
 - Scripts paralelizados
 - Configuração de concorrência
 - Rate limiting
 - Troubleshooting
 
 ### [classificacao.md](./guides/classificacao.md)
+
 Guia de classificação de documentos:
+
 - Decisões de design (envio como texto, truncamento, validação)
 - Limitações da API e soluções implementadas
 - Logging de progresso
 - Tratamento de erros
 
 ### [troubleshooting.md](./guides/troubleshooting.md)
+
 Guia de troubleshooting e scripts utilitários:
+
 - Problemas comuns e soluções
 - Scripts utilitários para correção de status
 - Correções implementadas no processamento e classificação
 - Casos de uso e exemplos
 
+### [dashboard.md](./guides/dashboard.md)
+
+Guia de uso do Dashboard:
+
+- Autenticação (registro e login)
+- Dashboard principal (estatísticas e gráficos)
+- Upload de arquivos
+- Lista e detalhes de arquivos
+- Chat RAG
+- Navegação
+- Troubleshooting específico do dashboard
+
 ## Referência Técnica
 
 ### [concurrency-pool.md](./reference/concurrency-pool.md)
+
 Documentação do ConcurrencyPool:
+
 - Interface e API
 - Uso básico e avançado
 - Configuração
 - Exemplos
 
 ### [worker-threads.md](./reference/worker-threads.md)
+
 Documentação de Worker Threads:
+
 - Arquitetura
 - Implementação
 - Comunicação
 - Performance
+
+### [dashboard-api.md](./reference/dashboard-api.md)
+
+Referência de APIs do Dashboard:
+
+- Endpoints de autenticação
+- Endpoints de documentos (stats, listagem, detalhes)
+- Endpoints de upload e processamento
+- Endpoint de chat RAG
+- Códigos de erro
+- Exemplos de uso
 
 ## Como Usar Esta Documentação
 
@@ -117,11 +183,12 @@ Documentação de Worker Threads:
 
 ### Para Desenvolvedores
 
-1. **Arquitetura**: Consulte [ARQUITETURA.md](./architecture/ARQUITETURA.md)
+1. **Arquitetura**: Consulte [ARQUITETURA.md](./architecture/ARQUITETURA.md) e [DASHBOARD.md](./architecture/DASHBOARD.md)
 2. **Dados**: Consulte [DADOS.md](./architecture/DADOS.md)
 3. **Paralelização**: Leia [paralelizacao.md](./guides/paralelizacao.md)
-4. **Troubleshooting**: Consulte [troubleshooting.md](./guides/troubleshooting.md)
-5. **Referência**: Use [reference/](./reference/) para detalhes técnicos
+4. **Dashboard**: Leia [dashboard.md](./guides/dashboard.md) e [dashboard-api.md](./reference/dashboard-api.md)
+5. **Troubleshooting**: Consulte [troubleshooting.md](./guides/troubleshooting.md)
+6. **Referência**: Use [reference/](./reference/) para detalhes técnicos
 
 ### Para Otimização
 
@@ -130,6 +197,25 @@ Documentação de Worker Threads:
 3. **Workers**: Consulte [worker-threads.md](./reference/worker-threads.md)
 
 ## Últimas Implementações
+
+### Dashboard Frontend (2024-11-20)
+
+- ✅ **Next.js 14+ Integrado**: Dashboard web completo integrado ao projeto existente
+- ✅ **Autenticação**: NextAuth.js v5 com sistema de login/registro
+- ✅ **Dashboard de Relatórios**: Estatísticas, gráficos e métricas dos documentos RAG
+- ✅ **Upload de Arquivos**: Upload múltiplo e por pasta com feedback via SSE
+- ✅ **Lista e Detalhes**: Visualização completa de arquivos processados
+- ✅ **Chat RAG**: Interface de chat com busca vetorial e streaming
+- ✅ **Layout e Navegação**: Sidebar, navbar e proteção de rotas
+- ✅ **Documentação Completa**: Arquitetura, guias e referência de APIs
+
+Ver [RESUMO-EXECUTIVO.md](./implementation-progress/RESUMO-EXECUTIVO.md) para detalhes completos.
+
+Documentação:
+
+- [Arquitetura do Dashboard](./architecture/DASHBOARD.md)
+- [Guia de Uso](./guides/dashboard.md)
+- [Referência de APIs](./reference/dashboard-api.md)
 
 ### Paralelização (2024)
 
@@ -176,13 +262,26 @@ lw-rag-system/
 ├── docs/                       # Esta pasta
 │   ├── INDEX.md               # Este arquivo
 │   ├── README.md              # Visão geral
+│   ├── implementation-progress/ # Progresso da implementação
 │   ├── setup/                 # Setup e configuração
 │   ├── architecture/          # Arquitetura e dados
 │   ├── guides/                # Guias de uso
 │   └── reference/             # Referência técnica
+├── app/                        # Next.js App Router (NOVO)
+│   ├── (auth)/                # Páginas de autenticação
+│   ├── (dashboard)/           # Páginas do dashboard
+│   └── api/                   # API Routes
+├── components/                 # Componentes React (NOVO)
+│   ├── ui/                    # Componentes shadcn/ui
+│   ├── dashboard/             # Componentes do dashboard
+│   ├── upload/                # Componentes de upload
+│   ├── files/                 # Componentes de arquivos
+│   └── layout/                # Componentes de layout
+├── hooks/                      # React Hooks (NOVO)
 ├── lib/                        # Código TypeScript
 │   ├── db/                    # Banco de dados
 │   ├── services/              # Serviços
+│   ├── auth/                  # Autenticação (NOVO)
 │   ├── utils/                 # Utilitários (ConcurrencyPool)
 │   ├── workers/               # Worker Threads
 │   └── types/                 # Tipos

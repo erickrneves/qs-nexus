@@ -1,24 +1,23 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import * as schema from './schema/rag.js';
-import * as dotenv from 'dotenv';
+import { drizzle } from 'drizzle-orm/postgres-js'
+import postgres from 'postgres'
+import * as schema from './schema/rag'
+import * as dotenv from 'dotenv'
 
-dotenv.config({ path: '.env.local' });
+dotenv.config({ path: '.env.local' })
 
 if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL is not set in .env.local');
+  throw new Error('DATABASE_URL is not set in .env.local')
 }
 
 // Configurar pool de conexões para suportar múltiplos workers
-const maxConnections = parseInt(process.env.DB_MAX_CONNECTIONS || '20', 10);
+const maxConnections = parseInt(process.env.DB_MAX_CONNECTIONS || '20', 10)
 
 const client = postgres(process.env.DATABASE_URL, {
   max: maxConnections,
   idle_timeout: 20,
   max_lifetime: 60 * 30, // 30 minutos
-});
+})
 
-export const db = drizzle(client, { schema });
+export const db = drizzle(client, { schema })
 
-export { schema };
-
+export { schema }

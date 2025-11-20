@@ -1,30 +1,41 @@
-import { pgTable, uuid, text, integer, timestamp, boolean, decimal, pgEnum, jsonb, customType } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  uuid,
+  text,
+  integer,
+  timestamp,
+  boolean,
+  decimal,
+  pgEnum,
+  jsonb,
+  customType,
+} from 'drizzle-orm/pg-core'
 
 // Define vector type for pgvector (1536 dimensions for text-embedding-3-small)
 const vector = customType<{ data: number[]; driverData: string }>({
   dataType() {
-    return 'vector(1536)';
+    return 'vector(1536)'
   },
   toDriver(value: number[]): string {
-    return `[${value.join(',')}]`;
+    return `[${value.join(',')}]`
   },
   fromDriver(value: string): number[] {
     if (typeof value === 'string') {
       // Remove brackets and parse
-      const cleaned = value.replace(/[\[\]]/g, '');
-      return cleaned.split(',').map(Number);
+      const cleaned = value.replace(/[\[\]]/g, '')
+      return cleaned.split(',').map(Number)
     }
-    return value;
+    return value
   },
-});
+})
 
 export const fileStatusEnum = pgEnum('file_status', [
   'pending',
   'processing',
   'completed',
   'failed',
-  'rejected'
-]);
+  'rejected',
+])
 
 export const docTypeEnum = pgEnum('doc_type', [
   'peticao_inicial',
@@ -33,8 +44,8 @@ export const docTypeEnum = pgEnum('doc_type', [
   'parecer',
   'contrato',
   'modelo_generico',
-  'outro'
-]);
+  'outro',
+])
 
 export const areaEnum = pgEnum('area', [
   'civil',
@@ -45,14 +56,10 @@ export const areaEnum = pgEnum('area', [
   'penal',
   'administrativo',
   'previdenciario',
-  'outro'
-]);
+  'outro',
+])
 
-export const complexityEnum = pgEnum('complexity', [
-  'simples',
-  'medio',
-  'complexo'
-]);
+export const complexityEnum = pgEnum('complexity', ['simples', 'medio', 'complexo'])
 
 export const documentFiles = pgTable('document_files', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -65,11 +72,13 @@ export const documentFiles = pgTable('document_files', {
   processedAt: timestamp('processed_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
+})
 
 export const templates = pgTable('templates', {
   id: uuid('id').primaryKey().defaultRandom(),
-  documentFileId: uuid('document_file_id').notNull().references(() => documentFiles.id),
+  documentFileId: uuid('document_file_id')
+    .notNull()
+    .references(() => documentFiles.id),
   title: text('title').notNull(),
   docType: docTypeEnum('doc_type').notNull(),
   area: areaEnum('area').notNull(),
@@ -84,16 +93,17 @@ export const templates = pgTable('templates', {
   isSilver: boolean('is_silver').default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
+})
 
 export const templateChunks = pgTable('template_chunks', {
   id: uuid('id').primaryKey().defaultRandom(),
-  templateId: uuid('template_id').notNull().references(() => templates.id),
+  templateId: uuid('template_id')
+    .notNull()
+    .references(() => templates.id),
   section: text('section'),
   role: text('role'),
   contentMarkdown: text('content_markdown').notNull(),
   chunkIndex: integer('chunk_index').notNull(),
   embedding: vector('embedding'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-});
-
+})
