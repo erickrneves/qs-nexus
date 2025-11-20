@@ -80,7 +80,7 @@ export default function LoginPage() {
                     onChange={e => setEmail(e.target.value)}
                     required
                     disabled={isLoading}
-                    className="pl-9 h-10"
+                    className="pl-9"
                   />
                 </div>
               </div>
@@ -107,12 +107,12 @@ export default function LoginPage() {
                     onChange={e => setPassword(e.target.value)}
                     required
                     disabled={isLoading}
-                    className="pl-9 h-10"
+                    className="pl-9"
                   />
                 </div>
               </div>
 
-              <Button type="submit" className="w-full h-10" disabled={isLoading}>
+              <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -139,7 +139,7 @@ export default function LoginPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" type="button" className="h-10" size="sm">
+              <Button variant="outline" type="button" size="sm">
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                   <path
                     fill="currentColor"
@@ -160,7 +160,7 @@ export default function LoginPage() {
                 </svg>
                 Google
               </Button>
-              <Button variant="outline" type="button" className="h-10" size="sm">
+              <Button variant="outline" type="button" size="sm">
                 <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                   <path
                     fillRule="evenodd"

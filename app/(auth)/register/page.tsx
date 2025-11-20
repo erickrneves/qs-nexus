@@ -93,7 +93,7 @@ export default function RegisterPage() {
                     onChange={e => setName(e.target.value)}
                     required
                     disabled={isLoading}
-                    className="pl-9 h-10"
+                    className="pl-9"
                   />
                 </div>
               </div>
@@ -112,7 +112,7 @@ export default function RegisterPage() {
                     onChange={e => setEmail(e.target.value)}
                     required
                     disabled={isLoading}
-                    className="pl-9 h-10"
+                    className="pl-9"
                   />
                 </div>
               </div>
@@ -132,7 +132,7 @@ export default function RegisterPage() {
                     required
                     minLength={6}
                     disabled={isLoading}
-                    className="pl-9 h-10"
+                    className="pl-9"
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -164,7 +164,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full h-10" disabled={isLoading || !acceptedTerms}>
+              <Button type="submit" className="w-full" disabled={isLoading || !acceptedTerms}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -188,7 +188,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" type="button" className="h-10" size="sm">
+              <Button variant="outline" type="button" size="sm">
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                   <path
                     fill="currentColor"
@@ -209,7 +209,7 @@ export default function RegisterPage() {
                 </svg>
                 Google
               </Button>
-              <Button variant="outline" type="button" className="h-10" size="sm">
+              <Button variant="outline" type="button" size="sm">
                 <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                   <path
                     fillRule="evenodd"
