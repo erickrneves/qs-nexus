@@ -181,7 +181,7 @@ export async function classifyDocument(
 
   try {
     const { object } = await generateObject({
-      model: openai('gpt-5'),
+      model: openai('gpt-4o'),
       schema: ClassificationSchema,
       messages: [
         {
