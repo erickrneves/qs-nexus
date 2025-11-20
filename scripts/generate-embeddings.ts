@@ -19,6 +19,9 @@ interface EmbedResult {
   success: boolean;
   skipped?: boolean;
   chunksCount?: number;
+  truncatedChunksCount?: number;
+  error?: string;
+  errorType?: 'token_limit' | 'other';
 }
 
 /**
@@ -53,23 +56,41 @@ async function generateEmbeddingsTask(template: InferSelectModel<typeof template
 
   // Gera embeddings em batch
   const texts = chunks.map(c => c.content);
-  const embeddingResults = await generateEmbeddings(texts, BATCH_SIZE);
+  
+  try {
+    const embeddingResults = await generateEmbeddings(texts, BATCH_SIZE, template.id);
 
-  // Combina chunks com embeddings
-  const chunksWithEmbeddings = chunks.map((chunk, idx) => ({
-    ...chunk,
-    embedding: embeddingResults[idx].embedding,
-  }));
+    // Conta chunks truncados
+    const truncatedCount = embeddingResults.filter(r => r.wasTruncated).length;
 
-  // Armazena chunks com embeddings no banco
-  await storeChunks(template.id, chunksWithEmbeddings);
+    // Combina chunks com embeddings
+    const chunksWithEmbeddings = chunks.map((chunk, idx) => ({
+      ...chunk,
+      embedding: embeddingResults[idx].embedding,
+    }));
 
-  return {
-    templateId: template.id,
-    success: true,
-    skipped: false,
-    chunksCount: chunksWithEmbeddings.length,
-  };
+    // Armazena chunks com embeddings no banco
+    await storeChunks(template.id, chunksWithEmbeddings);
+
+    return {
+      templateId: template.id,
+      success: true,
+      skipped: false,
+      chunksCount: chunksWithEmbeddings.length,
+      truncatedChunksCount: truncatedCount,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isTokenLimitError = errorMessage.includes('maximum context length') || 
+                              errorMessage.includes('8192 tokens');
+    
+    return {
+      templateId: template.id,
+      success: false,
+      error: errorMessage,
+      errorType: isTokenLimitError ? 'token_limit' : 'other',
+    };
+  }
 }
 
 async function main() {
@@ -113,16 +134,48 @@ async function main() {
   const processed = results.filter(r => r.success && !r.result?.skipped).length;
   const skipped = results.filter(r => r.success && r.result?.skipped).length;
   const errors = results.filter(r => !r.success).length;
+  const tokenLimitErrors = results.filter(r => !r.success && r.result?.errorType === 'token_limit').length;
+  const otherErrors = results.filter(r => !r.success && r.result?.errorType === 'other').length;
   const totalChunks = results
     .filter(r => r.success && r.result?.chunksCount)
     .reduce((sum, r) => sum + (r.result?.chunksCount || 0), 0);
+  const totalTruncated = results
+    .filter(r => r.success && r.result?.truncatedChunksCount)
+    .reduce((sum, r) => sum + (r.result?.truncatedChunksCount || 0), 0);
+
+  // Templates com problemas
+  const problematicTemplates = results
+    .filter(r => !r.success)
+    .map(r => r.result?.templateId)
+    .filter((id): id is string => id !== undefined);
 
   console.log(`\n\n✅ Geração de embeddings concluída em ${duration}s`);
   console.log(`   ✓ Processados: ${processed}`);
   console.log(`   ⊘ Pulados: ${skipped}`);
   console.log(`   ✗ Erros: ${errors}`);
+  if (tokenLimitErrors > 0) {
+    console.log(`      - Limite de tokens: ${tokenLimitErrors}`);
+  }
+  if (otherErrors > 0) {
+    console.log(`      - Outros erros: ${otherErrors}`);
+  }
   if (totalChunks > 0) {
     console.log(`   📦 Total de chunks: ${totalChunks}`);
+  }
+  if (totalTruncated > 0) {
+    console.log(`   ⚠️  Chunks truncados: ${totalTruncated}`);
+  }
+  
+  if (problematicTemplates.length > 0) {
+    console.log(`\n   🔍 Templates com problemas (${problematicTemplates.length}):`);
+    problematicTemplates.slice(0, 10).forEach(id => {
+      const result = results.find(r => r.result?.templateId === id);
+      const errorType = result?.result?.errorType === 'token_limit' ? 'limite de tokens' : 'outro erro';
+      console.log(`      - ${id.substring(0, 8)}... (${errorType})`);
+    });
+    if (problematicTemplates.length > 10) {
+      console.log(`      ... e mais ${problematicTemplates.length - 10} templates`);
+    }
   }
 }
 

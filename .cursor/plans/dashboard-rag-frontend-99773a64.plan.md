@@ -5,41 +5,64 @@
 
 Criar um dashboard web completo em Next.js para gerenciar e visualizar o sistema RAG de documentos jurídicos. O dashboard incluirá autenticação, relatórios, upload de arquivos, processamento e interface de chat para testar o RAG.
 
+## Acompanhamento de Progresso
+
+**IMPORTANTE**: Durante a execução do plano, cada tarefa concluída será marcada como concluída alterando `- [ ]` para `- [x]` no arquivo do plano. Isso permite acompanhar o progresso em tempo real e identificar quais etapas já foram completadas.
+
+- `- [ ]` = Tarefa pendente
+- `- [x]` = Tarefa concluída
+
 ## Estrutura do Projeto
 
 ### Decisões de Arquitetura
 
 - **Framework**: Next.js 14+ (App Router)
 - **Autenticação**: NextAuth.js com credenciais (email/senha)
-- **Banco de Dados**: Reutilizar Neon PostgreSQL existente + nova tabela `users`
+- **Banco de Dados**: Reutilizar Neon PostgreSQL existente + nova tabela `rag_users` (evitar conflito com tabela `User` existente)
 - **UI**: Tailwind CSS + shadcn/ui (componentes reutilizáveis)
 - **API**: Next.js API Routes (App Router)
 - **Upload**: Multipart/form-data com suporte a múltiplos arquivos e pastas
 
-## Fase 1: Setup do Projeto Next.js
+## Fase 1: Setup do Projeto Next.js (Integrado)
 
-### 1.1. Inicialização do Projeto
+### 1.1. Integração Next.js no Projeto Atual
 
-- [ ] Criar novo projeto Next.js na pasta `dashboard/` ou `frontend/`
-- [ ] Configurar TypeScript
-- [ ] Instalar dependências base: `next`, `react`, `react-dom`
-- [ ] Configurar Tailwind CSS
-- [ ] Instalar shadcn/ui e componentes base
+- [ ] Instalar Next.js no projeto atual: `npm install next react react-dom`
+- [ ] Criar estrutura `app/` na raiz do projeto (não em pasta separada)
+- [ ] Configurar `next.config.js` para compatibilidade com scripts existentes
+- [ ] Atualizar `package.json` com scripts Next.js:
+  - `dev`: `next dev`
+  - `build`: `next build`
+  - `start`: `next start`
+- [ ] Manter scripts RAG existentes intactos (`rag:process`, `rag:filter`, etc.)
+- [ ] Configurar TypeScript (já existe, apenas ajustar `tsconfig.json` se necessário)
 
-### 1.2. Configuração de Ambiente
+### 1.2. Configuração de Tailwind e shadcn/ui
 
-- [ ] Criar `.env.local` com variáveis:
-  - `DATABASE_URL` (reutilizar do projeto RAG)
-  - `NEXTAUTH_SECRET`
-  - `NEXTAUTH_URL`
-  - `OPENAI_API_KEY` (para chat RAG)
-- [ ] Configurar conexão com banco de dados (Drizzle ORM)
+- [ ] Instalar e configurar Tailwind CSS:
+  - `npm install -D tailwindcss postcss autoprefixer`
+  - `npx tailwindcss init -p`
+  - Configurar `tailwind.config.js` com paths corretos
+- [ ] Instalar shadcn/ui:
+  - `npx shadcn-ui@latest init`
+  - Configurar `components.json`
+  - Instalar componentes base: Button, Card, Input, Badge, Progress, Table, etc.
 
-### 1.3. Estrutura de Pastas
+### 1.3. Configuração de Ambiente
+
+- [ ] Verificar/criar `.env.local.example` e adicionar variáveis:
+  - `DATABASE_URL` (já existe - manter)
+  - `OPENAI_API_KEY` (já existe - manter)
+  - `NEXTAUTH_SECRET` (novo - gerar secret aleatório)
+  - `NEXTAUTH_URL` (novo - ex: `http://localhost:3000`)
+- [ ] Usuário deve copiar novas variáveis para `.env.local` existente
+- [ ] Reutilizar conexão Drizzle existente em `lib/db/index.ts`
+
+### 1.4. Estrutura de Pastas (Integrada)
 
 ```
-dashboard/
-├── app/
+lw-rag-system/
+├── app/                    # NOVO - Next.js App Router
 │   ├── (auth)/
 │   │   ├── login/
 │   │   └── register/
@@ -54,19 +77,30 @@ dashboard/
 │   │   ├── documents/
 │   │   ├── upload/
 │   │   ├── process/
+│   │   │   └── [jobId]/
+│   │   │       └── stream/  # SSE endpoint
 │   │   └── chat/
 │   └── layout.tsx
-├── components/
+├── components/             # NOVO
 │   ├── ui/ (shadcn components)
 │   ├── dashboard/
 │   ├── upload/
-│   └── chat/
-├── lib/
-│   ├── db/
-│   ├── auth/
-│   ├── services/
-│   └── utils/
-└── types/
+│   ├── files/
+│   ├── chat/
+│   └── layout/
+├── hooks/                  # NOVO
+│   └── useProcessStream.ts
+├── lib/                    # EXISTENTE - reutilizar
+│   ├── db/                 # EXISTENTE
+│   │   └── schema/
+│   │       └── rag-users.ts  # NOVO
+│   ├── services/           # EXISTENTE - reutilizar todos
+│   │   └── rag-search.ts   # NOVO
+│   ├── auth/               # NOVO
+│   └── utils/              # EXISTENTE
+├── scripts/                # EXISTENTE - manter intacto
+├── types/                  # EXISTENTE
+└── ... (resto do projeto)
 ```
 
 ## Fase 2: Autenticação
