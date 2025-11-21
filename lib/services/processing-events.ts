@@ -23,11 +23,6 @@ class ProcessingEventEmitter {
   private eventHistory: Map<string, ProcessingEvent[]> = new Map()
   private readonly MAX_HISTORY = 100 // Máximo de eventos a armazenar por job
   
-  constructor() {
-    // Garante que há apenas uma instância mesmo durante hot reload
-    const instanceId = Math.random().toString(36).substring(7)
-    console.log(`[ProcessingEvents] Creating new instance: ${instanceId}`)
-  }
 
   /**
    * Registra um listener para um job
@@ -79,20 +74,12 @@ class ProcessingEventEmitter {
    * Emite um evento para todos os listeners de um job
    */
   emit(jobId: string, event: ProcessingEvent) {
-    const timestamp = new Date().toISOString()
-    
     // Armazena o evento no histórico
     if (!this.eventHistory.has(jobId)) {
       this.eventHistory.set(jobId, [])
     }
     const history = this.eventHistory.get(jobId)!
     history.push(event)
-    
-    console.log(`[ProcessingEvents] [${timestamp}] Stored event in history for job ${jobId}:`, {
-      type: event.type,
-      historySize: history.length,
-      hasListeners: (this.listeners.get(jobId)?.length || 0) > 0,
-    })
     
     // Limita o tamanho do histórico
     if (history.length > this.MAX_HISTORY) {
@@ -102,7 +89,6 @@ class ProcessingEventEmitter {
     // Emite para todos os listeners
     const listeners = this.listeners.get(jobId)
     if (listeners) {
-      console.log(`[ProcessingEvents] [${timestamp}] Emitting to ${listeners.length} listener(s) for job ${jobId}`)
       listeners.forEach(listener => {
         try {
           listener(event)
@@ -110,8 +96,6 @@ class ProcessingEventEmitter {
           console.error('Error emitting event to listener:', error)
         }
       })
-    } else {
-      console.log(`[ProcessingEvents] [${timestamp}] No listeners registered for job ${jobId}, event stored in history only`)
     }
   }
 
@@ -119,14 +103,7 @@ class ProcessingEventEmitter {
    * Obtém o histórico de eventos de um job
    */
   getHistory(jobId: string): ProcessingEvent[] {
-    const history = this.eventHistory.get(jobId) || []
-    const timestamp = new Date().toISOString()
-    console.log(`[ProcessingEvents] [${timestamp}] getHistory called for job ${jobId}:`, {
-      historySize: history.length,
-      hasHistory: this.eventHistory.has(jobId),
-      allJobIds: Array.from(this.eventHistory.keys()),
-    })
-    return history
+    return this.eventHistory.get(jobId) || []
   }
 
   /**
@@ -134,29 +111,17 @@ class ProcessingEventEmitter {
    */
   isJobComplete(jobId: string): boolean {
     const history = this.eventHistory.get(jobId)
-    const timestamp = new Date().toISOString()
-    const result = history && history.length > 0 && (history[history.length - 1].type === 'job-complete' || history[history.length - 1].type === 'job-error')
-    console.log(`[ProcessingEvents] [${timestamp}] isJobComplete called for job ${jobId}:`, {
-      hasHistory: !!history,
-      historySize: history?.length || 0,
-      isComplete: result,
-      lastEventType: history && history.length > 0 ? history[history.length - 1].type : 'none',
-    })
-    return result
+    if (!history || history.length === 0) {
+      return false
+    }
+    const lastEvent = history[history.length - 1]
+    return lastEvent.type === 'job-complete' || lastEvent.type === 'job-error'
   }
 
   /**
    * Limpa o histórico de eventos de um job específico
    */
   clearHistory(jobId: string) {
-    const timestamp = new Date().toISOString()
-    const hadHistory = this.eventHistory.has(jobId)
-    const historySize = hadHistory ? this.eventHistory.get(jobId)!.length : 0
-    console.log(`[ProcessingEvents] [${timestamp}] clearHistory called for job ${jobId}:`, {
-      hadHistory,
-      historySize,
-      stackTrace: new Error().stack?.split('\n').slice(1, 4).join('\n'),
-    })
     this.eventHistory.delete(jobId)
   }
 
@@ -177,11 +142,3 @@ const globalForProcessingEvents = globalThis as unknown as {
 export const processingEvents =
   globalForProcessingEvents.processingEvents ??
   (globalForProcessingEvents.processingEvents = new ProcessingEventEmitter())
-
-if (process.env.NODE_ENV !== 'production') {
-  console.log('[ProcessingEvents] Singleton instance:', {
-    instanceId: (processingEvents as any).constructor?.name || 'unknown',
-    hasListeners: (processingEvents as any).listeners?.size || 0,
-    hasHistory: (processingEvents as any).eventHistory?.size || 0,
-  })
-}
