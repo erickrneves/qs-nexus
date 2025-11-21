@@ -1,0 +1,292 @@
+import { Worker } from 'node:worker_threads'
+import { fileURLToPath } from 'node:url'
+import { join, resolve, dirname } from 'node:path'
+import {
+  calculateFileHash,
+  normalizeFilePath,
+  markFileProcessing,
+  markFileCompleted,
+  markFileRejected,
+  saveTemporaryMarkdown,
+  readTemporaryMarkdown,
+  removeTemporaryMarkdown,
+  getFileByPath,
+} from './file-tracker'
+import { cleanMarkdown } from './docx-converter'
+import { classifyDocument, createTemplateDocument } from './classifier'
+import { chunkMarkdown } from './chunker'
+import { generateEmbeddings } from './embedding-generator'
+import { storeTemplate, storeChunks } from './store-embeddings'
+import { db } from '../db/index'
+import { documentFiles } from '../db/schema/rag'
+import { eq } from 'drizzle-orm'
+
+const PROJECT_ROOT = process.cwd()
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const WORKER_PATH = join(__dirname, '../workers/docx-converter-worker.ts')
+
+// Limites de configuração
+const MIN_WORDS = parseInt(process.env.MIN_WORDS || '300', 10)
+const MAX_WORDS = parseInt(process.env.MAX_WORDS || '25000', 10)
+const MAX_TOKENS = parseInt(process.env.CHUNK_MAX_TOKENS || '800', 10)
+const BATCH_SIZE = parseInt(process.env.BATCH_SIZE || '64', 10)
+
+export interface ProcessingProgress {
+  fileName: string
+  filePath: string
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  currentStep: number
+  totalSteps: number
+  progress: number
+  message: string
+  error?: string
+}
+
+export type ProgressCallback = (progress: ProcessingProgress) => void
+
+/**
+ * Converte DOCX para Markdown usando Worker Thread
+ */
+function convertDocxWithWorker(filePath: string): Promise<{ markdown: string; wordCount: number }> {
+  return new Promise((resolve, reject) => {
+    const taskId = `${Date.now()}-${Math.random()}`
+
+    try {
+      const execArgv = process.execArgv.length > 0 ? process.execArgv : ['--import', 'tsx/esm']
+      const worker = new Worker(WORKER_PATH, { execArgv })
+
+      const timeout = setTimeout(() => {
+        worker.terminate()
+        reject(new Error('Worker timeout após 60s'))
+      }, 60000)
+
+      worker.on(
+        'message',
+        (message: { taskId: string; success: boolean; result?: any; error?: string }) => {
+          if (message.taskId !== taskId) {
+            return
+          }
+
+          clearTimeout(timeout)
+          worker.terminate()
+
+          if (message.success && message.result) {
+            resolve(message.result)
+          } else {
+            reject(new Error(message.error || 'Unknown error'))
+          }
+        }
+      )
+
+      worker.on('error', error => {
+        clearTimeout(timeout)
+        worker.terminate()
+        reject(error)
+      })
+
+      worker.postMessage({ filePath, taskId })
+    } catch (error) {
+      reject(error)
+    }
+  })
+}
+
+/**
+ * Processa um arquivo completo através do pipeline RAG
+ */
+export async function processFile(
+  filePath: string,
+  onProgress?: ProgressCallback
+): Promise<{ success: boolean; error?: string }> {
+  const normalizedPath = normalizeFilePath(filePath, PROJECT_ROOT)
+  const fileName = filePath.split('/').pop() || normalizedPath
+  const totalSteps = 6 // process, filter, classify, chunk, embed, store
+
+  const reportProgress = (
+    step: number,
+    message: string,
+    progress: number = 0,
+    status: ProcessingProgress['status'] = 'processing'
+  ) => {
+    if (onProgress) {
+      onProgress({
+        fileName,
+        filePath: normalizedPath,
+        status,
+        currentStep: step,
+        totalSteps,
+        progress,
+        message,
+      })
+    }
+  }
+
+  try {
+    // Etapa 1: Converter DOCX → Markdown
+    reportProgress(1, 'Convertendo DOCX para Markdown...', 10)
+    const fileHash = calculateFileHash(filePath)
+
+    // Verifica se já foi processado
+    const existing = await getFileByPath(normalizedPath)
+    if (existing && existing.status === 'completed') {
+      reportProgress(totalSteps, 'Arquivo já processado', 100, 'completed')
+      return { success: true }
+    }
+    if (existing && existing.status === 'rejected') {
+      reportProgress(totalSteps, 'Arquivo rejeitado anteriormente', 0, 'failed')
+      return { success: false, error: 'Arquivo rejeitado' }
+    }
+
+    const { markdown, wordCount } = await convertDocxWithWorker(filePath)
+    const cleanedMarkdown = cleanMarkdown(markdown)
+
+    // Salva markdown temporário
+    saveTemporaryMarkdown(fileHash, cleanedMarkdown)
+
+    // Marca como processing
+    await markFileProcessing(normalizedPath, fileHash, fileName)
+
+    // Atualiza wordCount
+    const fileInfo = await getFileByPath(normalizedPath)
+    if (fileInfo) {
+      await db
+        .update(documentFiles)
+        .set({
+          wordsCount: wordCount,
+          updatedAt: new Date(),
+        })
+        .where(eq(documentFiles.id, fileInfo.id))
+    }
+
+    reportProgress(1, 'Conversão concluída', 20)
+
+    // Etapa 2: Filtrar por tamanho
+    reportProgress(2, 'Filtrando documento...', 30)
+
+    if (!wordCount || wordCount < MIN_WORDS) {
+      await markFileRejected(
+        normalizedPath,
+        `Muito pequeno: ${wordCount} palavras (mínimo: ${MIN_WORDS})`
+      )
+      removeTemporaryMarkdown(fileHash)
+      reportProgress(2, `Rejeitado: muito pequeno (${wordCount} palavras)`, 0, 'failed')
+      return { success: false, error: `Muito pequeno: ${wordCount} palavras` }
+    }
+
+    if (wordCount > MAX_WORDS) {
+      await markFileRejected(
+        normalizedPath,
+        `Muito grande: ${wordCount} palavras (máximo: ${MAX_WORDS})`
+      )
+      removeTemporaryMarkdown(fileHash)
+      reportProgress(2, `Rejeitado: muito grande (${wordCount} palavras)`, 0, 'failed')
+      return { success: false, error: `Muito grande: ${wordCount} palavras` }
+    }
+
+    reportProgress(2, 'Filtragem concluída', 40)
+
+    // Etapa 3: Classificar documento
+    reportProgress(3, 'Classificando documento...', 50)
+
+    const classification = await classifyDocument(cleanedMarkdown, message => {
+      // Log de progresso da classificação
+      console.log(`  [${fileName}] ${message}`)
+    })
+
+    const templateDoc = createTemplateDocument(classification, cleanedMarkdown, fileInfo!.id)
+    const templateId = await storeTemplate(templateDoc, fileInfo!.id)
+
+    reportProgress(3, 'Classificação concluída', 60)
+
+    // Etapa 4: Gerar chunks
+    reportProgress(4, 'Gerando chunks...', 70)
+    const chunks = chunkMarkdown(cleanedMarkdown, MAX_TOKENS)
+
+    if (chunks.length === 0) {
+      await markFileRejected(normalizedPath, 'Nenhum chunk gerado')
+      removeTemporaryMarkdown(fileHash)
+      reportProgress(4, 'Rejeitado: nenhum chunk gerado', 0, 'failed')
+      return { success: false, error: 'Nenhum chunk gerado' }
+    }
+
+    reportProgress(4, `${chunks.length} chunks gerados`, 75)
+
+    // Etapa 5: Gerar embeddings
+    reportProgress(5, 'Gerando embeddings...', 80)
+    const texts = chunks.map(c => c.content)
+    const embeddingResults = await generateEmbeddings(texts, BATCH_SIZE, templateId)
+
+    // Combina chunks com embeddings
+    const chunksWithEmbeddings = chunks.map((chunk, idx) => ({
+      ...chunk,
+      embedding: embeddingResults[idx].embedding,
+    }))
+
+    reportProgress(5, 'Embeddings gerados', 90)
+
+    // Etapa 6: Armazenar chunks
+    reportProgress(6, 'Armazenando chunks...', 95)
+    await storeChunks(templateId, chunksWithEmbeddings)
+
+    // Marca como completo
+    await markFileCompleted(normalizedPath, templateId, wordCount)
+
+    // Remove markdown temporário
+    removeTemporaryMarkdown(fileHash)
+
+    reportProgress(6, 'Processamento concluído', 100, 'completed')
+
+    return { success: true }
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    console.error(`[RAG-PROCESSOR] Erro ao processar ${fileName}:`, errorMsg)
+
+    // Marca como rejeitado em caso de erro
+    try {
+      const fileInfo = await getFileByPath(normalizedPath)
+      if (fileInfo) {
+        await markFileRejected(normalizedPath, `Erro no processamento: ${errorMsg}`)
+      }
+    } catch (rejectError) {
+      console.error(`[RAG-PROCESSOR] Erro ao marcar como rejeitado:`, rejectError)
+    }
+
+    reportProgress(totalSteps, `Erro: ${errorMsg}`, 0, 'failed')
+
+    return { success: false, error: errorMsg }
+  }
+}
+
+/**
+ * Processa múltiplos arquivos em paralelo
+ */
+export async function processFiles(
+  filePaths: string[],
+  onProgress?: (fileName: string, progress: ProcessingProgress) => void
+): Promise<Array<{ filePath: string; success: boolean; error?: string }>> {
+  const results = await Promise.allSettled(
+    filePaths.map(async filePath => {
+      const fileName = filePath.split('/').pop() || filePath
+      const result = await processFile(filePath, progress => {
+        if (onProgress) {
+          onProgress(fileName, progress)
+        }
+      })
+      return { filePath, ...result }
+    })
+  )
+
+  return results.map(result => {
+    if (result.status === 'fulfilled') {
+      return result.value
+    } else {
+      const filePath = result.reason?.filePath || 'unknown'
+      return {
+        filePath,
+        success: false,
+        error: result.reason?.message || 'Unknown error',
+      }
+    }
+  })
+}

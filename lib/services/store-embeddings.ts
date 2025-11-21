@@ -1,11 +1,11 @@
-import { db } from '../db/index.js';
-import { templates, templateChunks } from '../db/schema/rag.js';
-import { TemplateDocument } from '../types/template-document.js';
-import { Chunk } from './chunker.js';
-import { eq } from 'drizzle-orm';
+import { db } from '../db/index'
+import { templates, templateChunks } from '../db/schema/rag'
+import { TemplateDocument } from '../types/template-document'
+import { Chunk } from './chunker'
+import { eq } from 'drizzle-orm'
 
 export interface ChunkWithEmbedding extends Chunk {
-  embedding: number[];
+  embedding: number[]
 }
 
 /**
@@ -32,9 +32,9 @@ export async function storeTemplate(
       isGold: template.isGold,
       isSilver: template.isSilver,
     })
-    .returning();
+    .returning()
 
-  return inserted.id;
+  return inserted.id
 }
 
 /**
@@ -47,8 +47,8 @@ export async function storeChunks(
 ): Promise<void> {
   // Insere em batches para melhor performance
   for (let i = 0; i < chunksWithEmbeddings.length; i += batchSize) {
-    const batch = chunksWithEmbeddings.slice(i, i + batchSize);
-    
+    const batch = chunksWithEmbeddings.slice(i, i + batchSize)
+
     await db.insert(templateChunks).values(
       batch.map(chunk => ({
         templateId,
@@ -58,7 +58,7 @@ export async function storeChunks(
         chunkIndex: chunk.chunkIndex,
         embedding: chunk.embedding,
       }))
-    );
+    )
   }
 }
 
@@ -66,6 +66,5 @@ export async function storeChunks(
  * Remove chunks de um template (para reprocessamento)
  */
 export async function deleteTemplateChunks(templateId: string): Promise<void> {
-  await db.delete(templateChunks).where(eq(templateChunks.templateId, templateId));
+  await db.delete(templateChunks).where(eq(templateChunks.templateId, templateId))
 }
-

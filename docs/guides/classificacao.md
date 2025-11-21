@@ -70,6 +70,7 @@ content: `Analise o documento abaixo (formato Markdown)...\n\n---\n\n${markdown}
 - `qualityScore` deve estar presente e válido
 
 **Comportamento**: Se detectar dados vazios, o sistema:
+
 - Loga detalhes completos da resposta recebida
 - Inclui preview do markdown processado
 - Para a classificação imediatamente para debug
@@ -82,6 +83,7 @@ content: `Analise o documento abaixo (formato Markdown)...\n\n---\n\n${markdown}
 **Solução**: Sistema de callbacks de progresso que permite logar início e fim de cada classificação.
 
 **Implementação**:
+
 - Parâmetro opcional `onProgress?: (message: string) => void` na função `classifyDocument`
 - Logs de início: `"⏳ Iniciando classificação..."`
 - Logs de fim: `"✅ Classificação concluída"`
@@ -138,16 +140,19 @@ return {
 ## Tratamento de Erros
 
 ### Rate Limits
+
 - Detecta erro de rate limit
 - Aguarda 5 segundos
 - Retenta automaticamente
 
 ### Limite de Tokens
+
 - Detecta erro de limite de tokens
 - Tenta com versão mais truncada (50% do limite)
 - Se ainda falhar, propaga erro descritivo
 
 ### Respostas Vazias
+
 - Valida campos essenciais
 - Para processamento imediatamente
 - Loga detalhes completos para debug
@@ -155,17 +160,17 @@ return {
 ## Exemplo de Uso
 
 ```typescript
-import { classifyDocument } from '../lib/services/classifier.js';
+import { classifyDocument } from '../lib/services/classifier.js'
 
-const markdown = '# Documento jurídico...';
+const markdown = '# Documento jurídico...'
 
 // Com logging de progresso
-const result = await classifyDocument(markdown, (message) => {
-  console.log(`  ${message}`);
-});
+const result = await classifyDocument(markdown, message => {
+  console.log(`  ${message}`)
+})
 
 // Sem logging
-const result = await classifyDocument(markdown);
+const result = await classifyDocument(markdown)
 ```
 
 ## Output Esperado
@@ -200,4 +205,3 @@ const result = await classifyDocument(markdown);
 - [AI SDK Documentation](https://ai-sdk.dev/)
 - [OpenAI API Documentation](https://platform.openai.com/docs)
 - [Zod Schema Validation](https://zod.dev/)
-

@@ -1,4 +1,5 @@
 <!-- 709c22c6-abc1-4f2b-bc0b-a005bd496e82 abbe39c6-5350-4c5f-8d33-8d7d8043c686 -->
+
 # Plano de Refatoração do Sistema RAG
 
 ## Objetivo
@@ -86,9 +87,10 @@ Transformar o sistema atual em uma solução robusta que processa documentos jur
 - Migration 2: criar índices e constraints
   - Índices B-tree para campos de busca comum
   - **Índice HNSW na coluna `embedding`** de `template_chunks`:
+
     ```sql
-    CREATE INDEX idx_template_chunks_embedding_hnsw 
-    ON template_chunks 
+    CREATE INDEX idx_template_chunks_embedding_hnsw
+    ON template_chunks
     USING hnsw (embedding vector_cosine_ops)
     WITH (m = 16, ef_construction = 64);
     ```
@@ -376,6 +378,6 @@ npm run rag:store      # Armazena no banco
 - [ ] Criar script chunk-documents.ts: chunking inteligente, preparação para embeddings
 - [ ] Criar script generate-embeddings.ts: geração de embeddings em batch usando AI SDK
 - [ ] Criar script store-embeddings.ts: inserção no banco com pgvector, atualização de tracking
-- [ ] Atualizar .gitignore para excluir arquivos de dados (*.jsonl, *.csv, data/) mantendo apenas código
+- [ ] Atualizar .gitignore para excluir arquivos de dados (_.jsonl, _.csv, data/) mantendo apenas código
 - [ ] Adicionar scripts npm (rag:process, rag:filter, etc.) no package.json para executar pipeline
 - [ ] Documentar variáveis de ambiente necessárias no .env.local (DATABASE_URL, OPENAI_API_KEY, etc.)
