@@ -68,3 +68,14 @@ export async function storeChunks(
 export async function deleteTemplateChunks(templateId: string): Promise<void> {
   await db.delete(templateChunks).where(eq(templateChunks.templateId, templateId))
 }
+
+/**
+ * Remove um template completo e todos os seus chunks (incluindo embeddings/vetores)
+ */
+export async function deleteTemplate(templateId: string): Promise<void> {
+  // Primeiro deleta todos os chunks (isso também deleta os embeddings/vetores)
+  await deleteTemplateChunks(templateId)
+  
+  // Depois deleta o template
+  await db.delete(templates).where(eq(templates.id, templateId))
+}

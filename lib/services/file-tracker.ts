@@ -1,6 +1,7 @@
 import { db } from '../db/index'
-import { documentFiles } from '../db/schema/rag'
+import { documentFiles, templates } from '../db/schema/rag'
 import { eq, and } from 'drizzle-orm'
+import { deleteTemplate } from './store-embeddings'
 import { createHash } from 'node:crypto'
 import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
@@ -262,5 +263,87 @@ export function removeTemporaryMarkdown(fileHash: string): void {
   const filePath = join(process.cwd(), 'data', 'markdown', `${fileHash}.md`)
   if (existsSync(filePath)) {
     unlinkSync(filePath)
+  }
+}
+
+/**
+ * Interface para informações sobre o que foi deletado
+ */
+export interface DeleteFileResult {
+  success: boolean
+  fileDeleted: boolean
+  templateDeleted: boolean
+  chunksDeleted: boolean
+  physicalFileDeleted: boolean
+  markdownDeleted: boolean
+  error?: string
+}
+
+/**
+ * Deleta um arquivo completo e todos os seus dados relacionados
+ * Ordem: template_chunks (com embeddings) → templates → document_files
+ */
+export async function deleteFile(fileId: string): Promise<DeleteFileResult> {
+  try {
+    // Buscar arquivo por ID
+    const file = await db
+      .select()
+      .from(documentFiles)
+      .where(eq(documentFiles.id, fileId))
+      .limit(1)
+
+    if (file.length === 0) {
+      return {
+        success: false,
+        fileDeleted: false,
+        templateDeleted: false,
+        chunksDeleted: false,
+        physicalFileDeleted: false,
+        markdownDeleted: false,
+        error: 'Arquivo não encontrado',
+      }
+    }
+
+    const fileData = file[0]
+    let templateDeleted = false
+    let chunksDeleted = false
+
+    // Buscar template associado (se existir)
+    const template = await db
+      .select()
+      .from(templates)
+      .where(eq(templates.documentFileId, fileId))
+      .limit(1)
+
+    // Se existe template, deletar chunks e template
+    if (template.length > 0) {
+      await deleteTemplate(template[0].id)
+      templateDeleted = true
+      chunksDeleted = true
+    }
+
+    // Deletar document_file
+    await db.delete(documentFiles).where(eq(documentFiles.id, fileId))
+
+    return {
+      success: true,
+      fileDeleted: true,
+      templateDeleted,
+      chunksDeleted,
+      physicalFileDeleted: false, // Será tratado na API
+      markdownDeleted: false, // Será tratado na API
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    console.error('Error deleting file:', errorMessage)
+    return {
+      success: false,
+      fileDeleted: false,
+      templateDeleted: false,
+      chunksDeleted: false,
+      physicalFileDeleted: false,
+      markdownDeleted: false,
+      error: errorMessage,
+    }
   }
 }

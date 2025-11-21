@@ -63,6 +63,7 @@ export default function FilesPage() {
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [sortBy, setSortBy] = useState<string>('updatedAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [refreshKey, setRefreshKey] = useState(0)
 
   const debouncedSearch = useDebounce(searchQuery, 500)
 
@@ -97,7 +98,18 @@ export default function FilesPage() {
         }
 
         const data = await response.json()
-        setFiles(data.files || [])
+        
+        // Deduplicar arquivos por ID (caso a API retorne duplicatas)
+        const filesMap = new Map<string, File>()
+        const filesList = data.files || []
+        filesList.forEach((file: File) => {
+          if (!filesMap.has(file.id)) {
+            filesMap.set(file.id, file)
+          }
+        })
+        const uniqueFiles = Array.from(filesMap.values())
+        
+        setFiles(uniqueFiles)
         if (data.pagination) {
           setTotalPages(data.pagination.totalPages || 1)
         }
@@ -113,7 +125,14 @@ export default function FilesPage() {
     }
 
     fetchFiles()
-  }, [page, statusFilter, areaFilter, docTypeFilter, debouncedSearch, sortBy, sortOrder])
+  }, [page, statusFilter, areaFilter, docTypeFilter, debouncedSearch, sortBy, sortOrder, refreshKey])
+
+  const handleFileDeleted = (fileId: string) => {
+    // Recarregar a lista removendo o arquivo deletado do estado
+    setFiles(prevFiles => prevFiles.filter(f => f.id !== fileId))
+    // Forçar refresh caso ainda haja arquivos na página atual
+    setRefreshKey(prev => prev + 1)
+  }
 
   const handleSortChange = (column: string) => {
     if (sortBy === column) {
@@ -252,6 +271,7 @@ export default function FilesPage() {
                 sortBy={sortBy}
                 sortOrder={sortOrder}
                 onSortChange={handleSortChange}
+                onFileDeleted={handleFileDeleted}
               />
               <FileListPagination
                 currentPage={page}

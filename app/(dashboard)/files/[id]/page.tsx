@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { FileDetailsSkeleton } from '@/components/loading-skeletons'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { ArrowLeft, RefreshCw, Edit, Save, X, Loader2, Upload, FileText } from 'lucide-react'
+import { ArrowLeft, RefreshCw, Edit, Save, X, Loader2, Upload, FileText, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
 
@@ -60,6 +60,7 @@ export default function FileDetailsPage() {
   const [isSavingMarkdown, setIsSavingMarkdown] = useState(false)
   const [isReprocessing, setIsReprocessing] = useState(false)
   const [isRegeneratingChunks, setIsRegeneratingChunks] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -263,6 +264,30 @@ export default function FileDetailsPage() {
     }
   }
 
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/documents/${fileId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Erro ao deletar arquivo')
+      }
+
+      const data = await response.json()
+      toast.success(data.message || 'Arquivo e todos os dados relacionados foram excluídos com sucesso')
+      
+      // Redirecionar para a lista de arquivos
+      router.push('/files')
+    } catch (error) {
+      console.error('Error deleting file:', error)
+      toast.error(error instanceof Error ? error.message : 'Erro ao deletar arquivo')
+      setIsDeleting(false)
+    }
+  }
+
   // Cleanup do polling quando o componente desmontar
   useEffect(() => {
     return () => {
@@ -307,16 +332,48 @@ export default function FileDetailsPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 md:gap-6">
-      <div className="flex items-center gap-4">
-        <Link href="/files">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
-        </Link>
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">{file.fileName}</h1>
-          <p className="text-muted-foreground">Detalhes do arquivo</p>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-4">
+          <Link href="/files">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Voltar
+            </Button>
+          </Link>
+          <div className="space-y-1 flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight truncate">{file.fileName}</h1>
+            <p className="text-muted-foreground">Detalhes do arquivo</p>
+          </div>
+        </div>
+        <div className="flex justify-end">
+          <ConfirmDialog
+            trigger={
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={isDeleting}
+                className="bg-red-600 hover:bg-red-700 text-white shadow-sm"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Excluir Arquivo
+                  </>
+                )}
+              </Button>
+            }
+            title="Excluir arquivo"
+            description={`Tem certeza que deseja excluir o arquivo "${file.fileName}"? Esta ação não pode ser desfeita. Todos os dados relacionados (chunks, embeddings, templates) serão permanentemente excluídos.`}
+            confirmText="Excluir"
+            cancelText="Cancelar"
+            onConfirm={handleDelete}
+            variant="destructive"
+          />
         </div>
       </div>
 
@@ -356,6 +413,37 @@ export default function FileDetailsPage() {
                 <p className="text-sm text-red-600">{file.rejectedReason}</p>
               </div>
             )}
+            <div className="pt-2 border-t">
+              <p className="text-sm font-medium text-muted-foreground mb-2">Ações</p>
+              <ConfirmDialog
+                trigger={
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={isDeleting}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Excluindo...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Excluir Arquivo
+                      </>
+                    )}
+                  </Button>
+                }
+                title="Excluir arquivo"
+                description={`Tem certeza que deseja excluir o arquivo "${file.fileName}"? Esta ação não pode ser desfeita. Todos os dados relacionados (chunks, embeddings, templates) serão permanentemente excluídos.`}
+                confirmText="Excluir"
+                cancelText="Cancelar"
+                onConfirm={handleDelete}
+                variant="destructive"
+              />
+            </div>
             {(file.status === 'completed' || file.status === 'rejected') && (
               <div className="space-y-3">
                 <div>

@@ -12,8 +12,11 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Eye, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
+import { Eye, ArrowUp, ArrowDown, ArrowUpDown, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ConfirmDialog } from '@/components/confirm-dialog'
+import { toast } from 'react-hot-toast'
+import { useState } from 'react'
 
 interface File {
   id: string
@@ -29,6 +32,7 @@ interface FileListProps {
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
   onSortChange?: (column: string) => void
+  onFileDeleted?: (fileId: string) => void
 }
 
 const statusColors: Record<string, string> = {
@@ -39,10 +43,38 @@ const statusColors: Record<string, string> = {
   rejected: 'bg-muted',
 }
 
-export function FileList({ files, sortBy, sortOrder, onSortChange }: FileListProps) {
+export function FileList({ files, sortBy, sortOrder, onSortChange, onFileDeleted }: FileListProps) {
+  const [deletingFileId, setDeletingFileId] = useState<string | null>(null)
+
   const handleSort = (column: string) => {
     if (onSortChange) {
       onSortChange(column)
+    }
+  }
+
+  const handleDelete = async (fileId: string) => {
+    setDeletingFileId(fileId)
+    try {
+      const response = await fetch(`/api/documents/${fileId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Erro ao deletar arquivo')
+      }
+
+      toast.success('Arquivo e todos os dados relacionados foram excluídos com sucesso')
+      
+      // Notificar o componente pai para atualizar a lista
+      if (onFileDeleted) {
+        onFileDeleted(fileId)
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error)
+      toast.error(error instanceof Error ? error.message : 'Erro ao deletar arquivo')
+    } finally {
+      setDeletingFileId(null)
     }
   }
 
@@ -117,11 +149,31 @@ export function FileList({ files, sortBy, sortOrder, onSortChange }: FileListPro
                     {file.updatedAt ? new Date(file.updatedAt).toLocaleDateString('pt-BR') : '-'}
                   </TableCell>
                   <TableCell>
-                    <Link href={`/files/${file.id}`}>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/files/${file.id}`}>
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                      <ConfirmDialog
+                        trigger={
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={deletingFileId === file.id}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        }
+                        title="Excluir arquivo"
+                        description={`Tem certeza que deseja excluir o arquivo "${file.fileName}"? Esta ação não pode ser desfeita. Todos os dados relacionados (chunks, embeddings, templates) serão permanentemente excluídos.`}
+                        confirmText="Excluir"
+                        cancelText="Cancelar"
+                        onConfirm={() => handleDelete(file.id)}
+                        variant="destructive"
+                      />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -146,12 +198,33 @@ export function FileList({ files, sortBy, sortOrder, onSortChange }: FileListPro
                   <CardTitle className="text-base font-semibold line-clamp-2 flex-1">
                     {file.fileName}
                   </CardTitle>
-                  <Link href={`/files/${file.id}`}>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                      <Eye className="h-4 w-4" />
-                      <span className="sr-only">Ver detalhes</span>
-                    </Button>
-                  </Link>
+                  <div className="flex items-center gap-1">
+                    <Link href={`/files/${file.id}`}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                        <Eye className="h-4 w-4" />
+                        <span className="sr-only">Ver detalhes</span>
+                      </Button>
+                    </Link>
+                    <ConfirmDialog
+                      trigger={
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+                          disabled={deletingFileId === file.id}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Excluir</span>
+                        </Button>
+                      }
+                      title="Excluir arquivo"
+                      description={`Tem certeza que deseja excluir o arquivo "${file.fileName}"? Esta ação não pode ser desfeita. Todos os dados relacionados (chunks, embeddings, templates) serão permanentemente excluídos.`}
+                      confirmText="Excluir"
+                      cancelText="Cancelar"
+                      onConfirm={() => handleDelete(file.id)}
+                      variant="destructive"
+                    />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-2.5 pt-0">
