@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { FileList } from '@/components/files/file-list'
+import { FileListPagination } from '@/components/files/file-list-pagination'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -50,23 +51,18 @@ const DOC_TYPES = [
   { value: 'outro', label: 'Outro' },
 ]
 
-const SORT_OPTIONS = [
-  { value: 'updatedAt', label: 'Data de Atualização' },
-  { value: 'fileName', label: 'Nome do Arquivo' },
-  { value: 'status', label: 'Status' },
-]
-
 export default function FilesPage() {
   const [files, setFiles] = useState<File[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [areaFilter, setAreaFilter] = useState<string>('all')
   const [docTypeFilter, setDocTypeFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [sortBy, setSortBy] = useState<string>('updatedAt')
-  const [sortOrder, setSortOrder] = useState<string>('desc')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
   const debouncedSearch = useDebounce(searchQuery, 500)
 
@@ -102,6 +98,9 @@ export default function FilesPage() {
 
         const data = await response.json()
         setFiles(data.files || [])
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages || 1)
+        }
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : 'Erro desconhecido ao carregar arquivos'
@@ -115,6 +114,17 @@ export default function FilesPage() {
 
     fetchFiles()
   }, [page, statusFilter, areaFilter, docTypeFilter, debouncedSearch, sortBy, sortOrder])
+
+  const handleSortChange = (column: string) => {
+    if (sortBy === column) {
+      // Se já está ordenando por essa coluna, inverte a ordem
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      // Se é uma nova coluna, define como ascendente
+      setSortBy(column)
+      setSortOrder('asc')
+    }
+  }
 
   const clearFilters = () => {
     setStatusFilter('all')
@@ -155,7 +165,7 @@ export default function FilesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {/* Busca por título */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -209,31 +219,6 @@ export default function FilesPage() {
                 ))}
               </SelectContent>
             </Select>
-
-            {/* Ordenação */}
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger>
-                <SelectValue placeholder="Ordenar por" />
-              </SelectTrigger>
-              <SelectContent>
-                {SORT_OPTIONS.map(option => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Ordem */}
-            <Select value={sortOrder} onValueChange={setSortOrder}>
-              <SelectTrigger>
-                <SelectValue placeholder="Ordem" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="asc">Crescente</SelectItem>
-                <SelectItem value="desc">Decrescente</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </CardContent>
       </Card>
@@ -261,7 +246,19 @@ export default function FilesPage() {
               </Button>
             </div>
           ) : (
-            <FileList files={files} />
+            <>
+              <FileList
+                files={files}
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSortChange={handleSortChange}
+              />
+              <FileListPagination
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
+            </>
           )}
         </CardContent>
       </Card>

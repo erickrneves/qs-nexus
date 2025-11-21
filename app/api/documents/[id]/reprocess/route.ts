@@ -3,7 +3,7 @@ import { db } from '@/lib/db/index'
 import { documentFiles } from '@/lib/db/schema/rag'
 import { eq } from 'drizzle-orm'
 import { auth } from '@/lib/auth/config'
-import { resetFileStatus } from '@/lib/services/file-tracker'
+import { resetFileStatus, denormalizeFilePath } from '@/lib/services/file-tracker'
 import { processFile } from '@/lib/services/rag-processor'
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
@@ -24,10 +24,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const fileData = file[0]
 
-    // Verificar se arquivo está completed
-    if (fileData.status !== 'completed') {
+    // Verificar se arquivo está completed ou rejected
+    if (fileData.status !== 'completed' && fileData.status !== 'rejected') {
       return NextResponse.json(
-        { error: 'Apenas arquivos concluídos podem ser reprocessados' },
+        { error: 'Apenas arquivos concluídos ou rejeitados podem ser reprocessados' },
         { status: 400 }
       )
     }
@@ -38,15 +38,19 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: 'Erro ao resetar status do arquivo' }, { status: 500 })
     }
 
+    // Converter caminho relativo (do banco) para absoluto
+    const PROJECT_ROOT = process.cwd()
+    const absoluteFilePath = denormalizeFilePath(fileData.filePath, PROJECT_ROOT)
+
     // Reprocessar arquivo (assíncrono)
-    processFile(fileData.filePath)
+    processFile(absoluteFilePath)
       .then(result => {
         if (!result.success) {
-          console.error(`Erro ao reprocessar arquivo ${fileData.filePath}:`, result.error)
+          console.error(`Erro ao reprocessar arquivo ${absoluteFilePath}:`, result.error)
         }
       })
       .catch(error => {
-        console.error(`Erro ao reprocessar arquivo ${fileData.filePath}:`, error)
+        console.error(`Erro ao reprocessar arquivo ${absoluteFilePath}:`, error)
       })
 
     return NextResponse.json({

@@ -21,9 +21,9 @@ async function main() {
     }
 
     if (file.status === 'rejected') {
-      console.error(`❌ Não é possível reprocessar arquivos rejeitados: ${filePath}`)
-      console.error(`   Motivo: ${file.rejectedReason || 'Desconhecido'}`)
-      process.exit(1)
+      console.log(`⚠️  Arquivo rejeitado: ${filePath}`)
+      console.log(`   Motivo anterior: ${file.rejectedReason || 'Desconhecido'}`)
+      console.log('   Tentando reprocessar...')
     }
 
     const success = await resetFileStatus(filePath)

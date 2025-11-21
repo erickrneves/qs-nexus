@@ -3,7 +3,7 @@ import { documentFiles } from '../db/schema/rag'
 import { eq, and } from 'drizzle-orm'
 import { createHash } from 'node:crypto'
 import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from 'node:fs'
-import { join, dirname } from 'node:path'
+import { join, dirname, resolve } from 'node:path'
 
 export type FileStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'rejected'
 
@@ -34,6 +34,22 @@ export function calculateFileHash(filePath: string): string {
 export function normalizeFilePath(absolutePath: string, projectRoot: string): string {
   const relativePath = absolutePath.replace(projectRoot, '').replace(/^\//, '')
   return relativePath.startsWith('./') ? relativePath : `./${relativePath}`
+}
+
+/**
+ * Converte um caminho relativo (salvo no banco) de volta para caminho absoluto
+ */
+export function denormalizeFilePath(relativePath: string, projectRoot: string): string {
+  // Remove o prefixo ./ se existir
+  const cleanPath = relativePath.startsWith('./') ? relativePath.slice(2) : relativePath
+  
+  // Se o caminho já é absoluto (começa com /), retorna diretamente
+  if (cleanPath.startsWith('/')) {
+    return cleanPath
+  }
+  
+  // Resolve o caminho absoluto relativo ao projectRoot
+  return resolve(projectRoot, cleanPath)
 }
 
 /**
@@ -107,6 +123,7 @@ export async function markFileCompleted(
       wordsCount,
       processedAt: new Date(),
       updatedAt: new Date(),
+      rejectedReason: null, // Limpa motivo de rejeição quando processado com sucesso
     })
     .where(eq(documentFiles.filePath, filePath))
 }
@@ -178,7 +195,7 @@ export async function getProcessingStatus() {
 }
 
 /**
- * Reseta status de um arquivo para permitir reprocessamento (exceto rejeitados)
+ * Reseta status de um arquivo para permitir reprocessamento
  */
 export async function resetFileStatus(filePath: string): Promise<boolean> {
   const existing = await db
@@ -189,11 +206,6 @@ export async function resetFileStatus(filePath: string): Promise<boolean> {
 
   if (!existing[0]) {
     return false
-  }
-
-  // Não permite resetar arquivos rejeitados
-  if (existing[0].status === 'rejected') {
-    throw new Error('Cannot reset rejected files')
   }
 
   await db

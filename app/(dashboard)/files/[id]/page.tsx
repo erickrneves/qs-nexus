@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { FileDetailsSkeleton } from '@/components/loading-skeletons'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { ArrowLeft, RefreshCw, Edit, Save, X, Loader2 } from 'lucide-react'
+import { ArrowLeft, RefreshCw, Edit, Save, X, Loader2, Upload, FileText } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
 
@@ -59,6 +59,10 @@ export default function FileDetailsPage() {
   const [editedMarkdown, setEditedMarkdown] = useState('')
   const [isSavingMarkdown, setIsSavingMarkdown] = useState(false)
   const [isReprocessing, setIsReprocessing] = useState(false)
+  const [isRegeneratingChunks, setIsRegeneratingChunks] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     async function fetchFileDetails() {
@@ -132,11 +136,21 @@ export default function FileDetailsPage() {
     }
   }
 
-  const handleReprocess = async () => {
+  const handleReprocessFull = async () => {
+    if (!selectedFile) {
+      toast.error('Por favor, selecione um arquivo DOCX')
+      return
+    }
+
     setIsReprocessing(true)
+
     try {
-      const response = await fetch(`/api/documents/${fileId}/reprocess`, {
+      const formData = new FormData()
+      formData.append('file', selectedFile)
+
+      const response = await fetch(`/api/documents/${fileId}/reprocess-full`, {
         method: 'POST',
+        body: formData,
       })
 
       if (!response.ok) {
@@ -144,18 +158,119 @@ export default function FileDetailsPage() {
         throw new Error(data.error || 'Erro ao reprocessar arquivo')
       }
 
-      toast.success('Reprocessamento iniciado. O arquivo será processado em segundo plano.')
-      // Recarregar dados após um delay
-      setTimeout(() => {
-        window.location.reload()
-      }, 2000)
+      toast.success('Reprocessamento completo iniciado. Aguardando conclusão...')
+      setSelectedFile(null)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+
+      // Aguardar um pouco para o status ser resetado
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Iniciar polling para verificar o status
+      let pollCount = 0
+      const maxPolls = 300 // 5 minutos (300 * 2s)
+      const pollInterval = 2000 // 2 segundos
+
+      const checkStatus = async () => {
+        try {
+          const statusResponse = await fetch(`/api/documents/${fileId}`)
+          if (!statusResponse.ok) {
+            return
+          }
+
+          const statusData = await statusResponse.json()
+          const currentStatus = statusData.file?.status
+
+          // Verificar se o status mudou para 'completed' ou 'rejected'
+          if (currentStatus === 'completed' || currentStatus === 'rejected') {
+            // Parar o polling
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current)
+              pollingIntervalRef.current = null
+            }
+
+            setIsReprocessing(false)
+
+            // Mostrar notificação baseada no resultado
+            if (currentStatus === 'completed') {
+              toast.success('Reprocessamento completo concluído com sucesso!')
+            } else if (currentStatus === 'rejected') {
+              const reason = statusData.file?.rejectedReason || 'Motivo desconhecido'
+              toast.error(`Reprocessamento falhou: ${reason}`)
+            }
+
+            // Recarregar dados
+            setFile(statusData.file)
+            setTemplate(statusData.template)
+            setChunks(statusData.chunks || [])
+            return
+          }
+
+          pollCount++
+          if (pollCount >= maxPolls) {
+            // Timeout após 5 minutos
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current)
+              pollingIntervalRef.current = null
+            }
+            setIsReprocessing(false)
+            toast.error('Timeout: O reprocessamento está demorando mais que o esperado.')
+          }
+        } catch (error) {
+          console.error('Error checking status:', error)
+        }
+      }
+
+      // Iniciar polling
+      pollingIntervalRef.current = setInterval(checkStatus, pollInterval) as unknown as NodeJS.Timeout
     } catch (error) {
       console.error('Error reprocessing file:', error)
       toast.error(error instanceof Error ? error.message : 'Erro ao reprocessar arquivo')
-    } finally {
       setIsReprocessing(false)
     }
   }
+
+  const handleRegenerateChunks = async () => {
+    setIsRegeneratingChunks(true)
+
+    try {
+      const response = await fetch(`/api/documents/${fileId}/regenerate-chunks`, {
+        method: 'POST',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Erro ao regenerar chunks')
+      }
+
+      const data = await response.json()
+      toast.success(data.message || 'Chunks e embeddings regenerados com sucesso!')
+
+      // Recarregar dados
+      const refreshResponse = await fetch(`/api/documents/${fileId}`)
+      if (refreshResponse.ok) {
+        const refreshData = await refreshResponse.json()
+        setFile(refreshData.file)
+        setTemplate(refreshData.template)
+        setChunks(refreshData.chunks || [])
+      }
+    } catch (error) {
+      console.error('Error regenerating chunks:', error)
+      toast.error(error instanceof Error ? error.message : 'Erro ao regenerar chunks')
+    } finally {
+      setIsRegeneratingChunks(false)
+    }
+  }
+
+  // Cleanup do polling quando o componente desmontar
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+      }
+    }
+  }, [])
 
   if (isLoading) {
     return (
@@ -231,35 +346,136 @@ export default function FileDetailsPage() {
                 {file.processedAt ? new Date(file.processedAt).toLocaleString('pt-BR') : 'N/A'}
               </p>
             </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Caminho Original</p>
+              <p className="text-sm font-mono text-xs break-all">{file.filePath}</p>
+            </div>
             {file.rejectedReason && (
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Motivo da Rejeição</p>
                 <p className="text-sm text-red-600">{file.rejectedReason}</p>
               </div>
             )}
-            {file.status === 'completed' && (
-              <ConfirmDialog
-                trigger={
-                  <Button variant="outline" disabled={isReprocessing}>
-                    {isReprocessing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Reprocessando...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Reprocessar
-                      </>
-                    )}
-                  </Button>
-                }
-                title="Reprocessar arquivo"
-                description="Tem certeza que deseja reprocessar este arquivo? O processamento atual será substituído. Esta ação irá reclassificar o documento, regenerar os chunks e embeddings."
-                confirmText="Reprocessar"
-                cancelText="Cancelar"
-                onConfirm={handleReprocess}
-              />
+            {(file.status === 'completed' || file.status === 'rejected') && (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">
+                    Reprocessar Arquivo Completo
+                  </p>
+                  <div className="space-y-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".docx"
+                      onChange={e => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          if (!file.name.endsWith('.docx')) {
+                            toast.error('Apenas arquivos DOCX são permitidos')
+                            return
+                          }
+                          if (file.size > 50 * 1024 * 1024) {
+                            toast.error('Arquivo muito grande (máximo 50MB)')
+                            return
+                          }
+                          setSelectedFile(file)
+                        }
+                      }}
+                      className="hidden"
+                      id="reprocess-file-input"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isReprocessing}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        {selectedFile ? selectedFile.name : 'Selecionar arquivo DOCX'}
+                      </Button>
+                      {selectedFile && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedFile(null)
+                            if (fileInputRef.current) {
+                              fileInputRef.current.value = ''
+                            }
+                          }}
+                          disabled={isReprocessing}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    <ConfirmDialog
+                      trigger={
+                        <Button
+                          variant="outline"
+                          disabled={isReprocessing || !selectedFile}
+                          className="w-full"
+                        >
+                          {isReprocessing ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Reprocessando...
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                              Reprocessar Arquivo Completo
+                            </>
+                          )}
+                        </Button>
+                      }
+                      title="Reprocessar arquivo completo"
+                      description={
+                        file.status === 'rejected'
+                          ? 'Tem certeza que deseja reprocessar este arquivo rejeitado? Um novo arquivo DOCX será processado do zero (conversão, classificação, chunks e embeddings).'
+                          : 'Tem certeza que deseja reprocessar este arquivo? Um novo arquivo DOCX será processado do zero, substituindo todo o processamento atual (conversão, classificação, chunks e embeddings).'
+                      }
+                      confirmText="Reprocessar"
+                      cancelText="Cancelar"
+                      onConfirm={handleReprocessFull}
+                    />
+                  </div>
+                </div>
+                {file.status === 'completed' && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">
+                      Regenerar Chunks e Embeddings
+                    </p>
+                    <ConfirmDialog
+                      trigger={
+                        <Button
+                          variant="outline"
+                          disabled={isRegeneratingChunks}
+                          className="w-full"
+                        >
+                          {isRegeneratingChunks ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Regenerando...
+                            </>
+                          ) : (
+                            <>
+                              <FileText className="h-4 w-4 mr-2" />
+                              Regenerar Chunks e Embeddings
+                            </>
+                          )}
+                        </Button>
+                      }
+                      title="Regenerar chunks e embeddings"
+                      description="Tem certeza que deseja regenerar os chunks e embeddings? O markdown atual será usado para gerar novos chunks e embeddings, substituindo os existentes."
+                      confirmText="Regenerar"
+                      cancelText="Cancelar"
+                      onConfirm={handleRegenerateChunks}
+                    />
+                  </div>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>
@@ -384,10 +600,9 @@ export default function FileDetailsPage() {
                     </div>
                     <Badge variant="secondary">#{chunk.chunkIndex}</Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {chunk.contentMarkdown.substring(0, 200)}
-                    {chunk.contentMarkdown.length > 200 && '...'}
-                  </p>
+                  <pre className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
+                    {chunk.contentMarkdown}
+                  </pre>
                 </div>
               ))}
             </div>

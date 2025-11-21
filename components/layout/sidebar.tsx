@@ -21,6 +21,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from '@/components/ui/sidebar'
 
 const navigation = [
@@ -36,6 +37,8 @@ interface AppSidebarProps {
 
 export function AppSidebar({ onLinkClick }: AppSidebarProps) {
   const pathname = usePathname()
+  const { state } = useSidebar()
+  const isCollapsed = state === 'collapsed'
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -62,7 +65,7 @@ export function AppSidebar({ onLinkClick }: AppSidebarProps) {
             Menu
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
+            <SidebarMenu>
               {navigation.map(item => {
                 const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
                 const Icon = item.icon
@@ -86,16 +89,18 @@ export function AppSidebar({ onLinkClick }: AppSidebarProps) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4 pt-6 border-t">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <div className="flex flex-col gap-1.5 rounded-lg bg-muted/50 p-4 text-xs w-full">
-              <div className="font-semibold text-sm">Sistema RAG</div>
-              <div className="text-muted-foreground">Versão 1.0.0</div>
-            </div>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
+      {!isCollapsed && (
+        <SidebarFooter className="p-4 pt-6 border-t">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <div className="flex flex-col gap-1.5 rounded-lg bg-muted/50 p-4 text-xs w-full">
+                <div className="font-semibold text-sm">Sistema RAG</div>
+                <div className="text-muted-foreground">Versão 1.0.0</div>
+              </div>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      )}
       <SidebarRail />
     </Sidebar>
   )

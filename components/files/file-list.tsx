@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Eye } from 'lucide-react'
+import { Eye, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface File {
@@ -26,6 +26,9 @@ interface File {
 
 interface FileListProps {
   files: File[]
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+  onSortChange?: (column: string) => void
 }
 
 const statusColors: Record<string, string> = {
@@ -36,7 +39,44 @@ const statusColors: Record<string, string> = {
   rejected: 'bg-muted',
 }
 
-export function FileList({ files }: FileListProps) {
+export function FileList({ files, sortBy, sortOrder, onSortChange }: FileListProps) {
+  const handleSort = (column: string) => {
+    if (onSortChange) {
+      onSortChange(column)
+    }
+  }
+
+  const SortableHeader = ({
+    column,
+    children,
+  }: {
+    column: string
+    children: React.ReactNode
+  }) => {
+    const isSorted = sortBy === column
+    const isAsc = isSorted && sortOrder === 'asc'
+
+    return (
+      <TableHead>
+        <button
+          onClick={() => handleSort(column)}
+          className="flex items-center gap-2 hover:text-foreground transition-colors cursor-pointer w-full text-left"
+        >
+          {children}
+          {isSorted ? (
+            isAsc ? (
+              <ArrowUp className="h-4 w-4" />
+            ) : (
+              <ArrowDown className="h-4 w-4" />
+            )
+          ) : (
+            <ArrowUpDown className="h-4 w-4 opacity-50" />
+          )}
+        </button>
+      </TableHead>
+    )
+  }
+
   return (
     <>
       {/* Tabela desktop - escondida em mobile */}
@@ -44,11 +84,11 @@ export function FileList({ files }: FileListProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Status</TableHead>
+              <SortableHeader column="fileName">Nome</SortableHeader>
+              <SortableHeader column="status">Status</SortableHeader>
               <TableHead>Área</TableHead>
               <TableHead>Tipo</TableHead>
-              <TableHead>Atualizado</TableHead>
+              <SortableHeader column="updatedAt">Atualizado</SortableHeader>
               <TableHead>Ações</TableHead>
             </TableRow>
           </TableHeader>

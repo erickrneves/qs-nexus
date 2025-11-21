@@ -28,20 +28,35 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 toastOptions={{
                   duration: 4000,
                   style: {
-                    background: 'var(--background)',
-                    color: 'var(--foreground)',
-                    border: '1px solid var(--border)',
+                    background: 'hsl(var(--card))',
+                    color: 'hsl(var(--card-foreground))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: 'var(--radius)',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                    padding: '16px',
+                    fontSize: '14px',
+                    fontWeight: '500',
                   },
                   success: {
+                    style: {
+                      background: 'hsl(var(--card))',
+                      color: 'hsl(var(--card-foreground))',
+                      border: '1px solid hsl(var(--border))',
+                    },
                     iconTheme: {
-                      primary: 'var(--primary)',
-                      secondary: 'var(--primary-foreground)',
+                      primary: 'hsl(var(--primary))',
+                      secondary: 'hsl(var(--primary-foreground))',
                     },
                   },
                   error: {
+                    style: {
+                      background: 'hsl(var(--card))',
+                      color: 'hsl(var(--card-foreground))',
+                      border: '1px solid hsl(var(--destructive))',
+                    },
                     iconTheme: {
-                      primary: 'var(--destructive)',
-                      secondary: 'var(--destructive-foreground)',
+                      primary: 'hsl(var(--destructive))',
+                      secondary: 'hsl(var(--destructive-foreground))',
                     },
                   },
                 }}
