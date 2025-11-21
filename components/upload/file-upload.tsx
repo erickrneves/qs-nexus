@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Upload, Folder, X, FileText } from 'lucide-react'
@@ -14,6 +14,11 @@ interface FileUploadProps {
 export function FileUpload({ onFilesSelected, maxSize = 50 }: FileUploadProps) {
   const [files, setFiles] = useState<File[]>([])
   const [isDragging, setIsDragging] = useState(false)
+
+  // Sincroniza arquivos com o callback após atualização do estado
+  useEffect(() => {
+    onFilesSelected(files)
+  }, [files, onFilesSelected])
 
   const handleFileSelect = useCallback(
     (selectedFiles: FileList | null) => {
@@ -29,9 +34,8 @@ export function FileUpload({ onFilesSelected, maxSize = 50 }: FileUploadProps) {
         }
       }
       setFiles(prev => [...prev, ...validFiles])
-      onFilesSelected([...files, ...validFiles])
     },
-    [files, onFilesSelected, maxSize]
+    [maxSize]
   )
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -55,13 +59,9 @@ export function FileUpload({ onFilesSelected, maxSize = 50 }: FileUploadProps) {
 
   const removeFile = useCallback(
     (index: number) => {
-      setFiles(prev => {
-        const newFiles = prev.filter((_, i) => i !== index)
-        onFilesSelected(newFiles)
-        return newFiles
-      })
+      setFiles(prev => prev.filter((_, i) => i !== index))
     },
-    [onFilesSelected]
+    []
   )
 
   const handleFolderSelect = useCallback(
