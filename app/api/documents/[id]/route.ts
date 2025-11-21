@@ -3,7 +3,7 @@ import { db } from '@/lib/db/index'
 import { documentFiles, templates, templateChunks } from '@/lib/db/schema/rag'
 import { eq } from 'drizzle-orm'
 import { auth } from '@/lib/auth/config'
-import { deleteFile, denormalizeFilePath, removeTemporaryMarkdown } from '@/lib/services/file-tracker'
+import { deleteFile, denormalizeFilePath, removeTemporaryMarkdown, readTemporaryMarkdown } from '@/lib/services/file-tracker'
 import { existsSync, unlinkSync } from 'fs'
 
 // Cache por 60 segundos (detalhes mudam menos frequentemente)
@@ -37,9 +37,38 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         .orderBy(templateChunks.chunkIndex)
     }
 
+    // Se não há template mas há fileHash, tenta buscar markdown temporário (para arquivos rejeitados)
+    let markdownFromTemp: string | null = null
+    if (template.length === 0 && file[0].fileHash) {
+      markdownFromTemp = readTemporaryMarkdown(file[0].fileHash)
+    }
+
+    // Se encontrou markdown temporário mas não há template, cria um objeto template temporário para o frontend
+    let templateResponse = template[0] || null
+    if (!templateResponse && markdownFromTemp) {
+      // Cria um template temporário com valores padrão válidos para arquivos rejeitados
+      templateResponse = {
+        id: 'temp-' + fileId,
+        documentFileId: fileId,
+        title: file[0].fileName,
+        docType: 'outro' as const,
+        area: 'outro' as const,
+        jurisdiction: 'BR',
+        complexity: 'medio' as const,
+        tags: [],
+        summary: 'Arquivo rejeitado - markdown disponível para visualização',
+        markdown: markdownFromTemp,
+        qualityScore: null,
+        isGold: false,
+        isSilver: false,
+        createdAt: file[0].createdAt,
+        updatedAt: file[0].updatedAt,
+      } as any
+    }
+
     return NextResponse.json({
       file: file[0],
-      template: template[0] || null,
+      template: templateResponse,
       chunks: chunks,
     })
   } catch (error) {

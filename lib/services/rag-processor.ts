@@ -24,7 +24,7 @@ import { eq } from 'drizzle-orm'
 const PROJECT_ROOT = process.cwd()
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
-const WORKER_PATH = join(__dirname, '../workers/docx-converter-worker.ts')
+const WORKER_PATH = join(__dirname, '../workers/document-converter-worker.ts')
 
 // Limites de configuração
 const MIN_WORDS = parseInt(process.env.MIN_WORDS || '300', 10)
@@ -46,9 +46,10 @@ export interface ProcessingProgress {
 export type ProgressCallback = (progress: ProcessingProgress) => void
 
 /**
- * Converte DOCX para Markdown usando Worker Thread
+ * Converte documento para Markdown usando Worker Thread
+ * Suporta: .docx, .doc, .pdf
  */
-function convertDocxWithWorker(filePath: string): Promise<{ markdown: string; wordCount: number }> {
+function convertDocumentWithWorker(filePath: string): Promise<{ markdown: string; wordCount: number }> {
   return new Promise((resolve, reject) => {
     const taskId = `${Date.now()}-${Math.random()}`
 
@@ -125,8 +126,8 @@ export async function processFile(
   }
 
   try {
-    // Etapa 1: Converter DOCX → Markdown
-    reportProgress(1, 'Convertendo DOCX para Markdown...', 10)
+    // Etapa 1: Converter documento → Markdown
+    reportProgress(1, 'Convertendo documento para Markdown...', 10)
     const fileHash = calculateFileHash(filePath)
 
     // Verifica se já foi processado
@@ -141,7 +142,7 @@ export async function processFile(
       return { success: false, error: errorMsg }
     }
 
-    const { markdown, wordCount } = await convertDocxWithWorker(filePath)
+    const { markdown, wordCount } = await convertDocumentWithWorker(filePath)
     const cleanedMarkdown = cleanMarkdown(markdown)
 
     // Salva markdown temporário
@@ -170,7 +171,7 @@ export async function processFile(
     if (!wordCount || wordCount < MIN_WORDS) {
       const errorMsg = `Muito pequeno: ${wordCount} palavras (mínimo: ${MIN_WORDS})`
       await markFileRejected(normalizedPath, errorMsg)
-      removeTemporaryMarkdown(fileHash)
+      // Mantém markdown temporário para visualização na tela de detalhes
       reportProgress(2, `Rejeitado: muito pequeno (${wordCount} palavras)`, 0, 'failed', errorMsg)
       return { success: false, error: errorMsg }
     }
@@ -178,7 +179,7 @@ export async function processFile(
     if (wordCount > MAX_WORDS) {
       const errorMsg = `Muito grande: ${wordCount} palavras (máximo: ${MAX_WORDS})`
       await markFileRejected(normalizedPath, errorMsg)
-      removeTemporaryMarkdown(fileHash)
+      // Mantém markdown temporário para visualização na tela de detalhes
       reportProgress(2, `Rejeitado: muito grande (${wordCount} palavras)`, 0, 'failed', errorMsg)
       return { success: false, error: errorMsg }
     }

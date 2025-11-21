@@ -454,12 +454,14 @@ export default function FileDetailsPage() {
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept=".docx"
+                      accept=".docx,.doc,.pdf"
                       onChange={e => {
                         const file = e.target.files?.[0]
                         if (file) {
-                          if (!file.name.endsWith('.docx')) {
-                            toast.error('Apenas arquivos DOCX são permitidos')
+                          const fileName = file.name.toLowerCase()
+                          const isValidFormat = fileName.endsWith('.docx') || fileName.endsWith('.doc') || fileName.endsWith('.pdf')
+                          if (!isValidFormat) {
+                            toast.error('Apenas arquivos DOCX, DOC ou PDF são permitidos')
                             return
                           }
                           if (file.size > 50 * 1024 * 1024) {

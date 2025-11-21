@@ -87,33 +87,33 @@ O dashboard atualiza automaticamente a cada 30 segundos para mostrar as estatís
 
 ## Upload de Arquivos
 
-A página de upload (`/upload`) permite enviar arquivos DOCX para processamento.
+A página de upload (`/upload`) permite enviar arquivos DOCX, DOC ou PDF para processamento.
 
 ### Como Fazer Upload
 
 #### Opção 1: Drag & Drop
 
-1. Arraste arquivos `.docx` para a área de upload
+1. Arraste arquivos `.docx`, `.doc` ou `.pdf` para a área de upload
 2. Os arquivos aparecerão na lista de preview
 3. Clique em "Processar Arquivos"
 
 #### Opção 2: Seleção de Arquivos
 
 1. Clique na área de upload ou no botão "Escolher Arquivos"
-2. Selecione um ou mais arquivos `.docx`
+2. Selecione um ou mais arquivos `.docx`, `.doc` ou `.pdf`
 3. Os arquivos aparecerão na lista de preview
 4. Clique em "Processar Arquivos"
 
 #### Opção 3: Upload de Pasta
 
 1. Clique no botão "Escolher Pasta"
-2. Selecione uma pasta contendo arquivos `.docx`
-3. Todos os arquivos `.docx` da pasta serão selecionados
+2. Selecione uma pasta contendo arquivos `.docx`, `.doc` ou `.pdf`
+3. Todos os arquivos suportados da pasta serão selecionados
 4. Clique em "Processar Arquivos"
 
 ### Validações
 
-- **Formato**: Apenas arquivos `.docx` são aceitos
+- **Formato**: Apenas arquivos `.docx`, `.doc` ou `.pdf` são aceitos
 - **Tamanho**: Máximo de 50MB por arquivo
 - Arquivos que não atendem aos critérios são ignorados silenciosamente
 
@@ -297,7 +297,7 @@ O navbar no topo contém:
 
 **Arquivo não aparece na lista**
 
-- Verifique se o arquivo é `.docx`
+- Verifique se o arquivo é `.docx`, `.doc` ou `.pdf`
 - Verifique se o tamanho é menor que 50MB
 - Arquivos inválidos são ignorados silenciosamente
 

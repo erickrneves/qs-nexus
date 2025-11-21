@@ -2,12 +2,12 @@
 
 ## Visão Geral
 
-O sistema RAG processa documentos jurídicos DOCX através de um pipeline completo que converte para Markdown, classifica com metadados estruturados e gera embeddings para busca vetorial.
+O sistema RAG processa documentos jurídicos (DOCX, DOC, PDF) através de um pipeline completo que converte para Markdown, classifica com metadados estruturados e gera embeddings para busca vetorial.
 
 ## Fluxo de Dados
 
 ```
-DOCX Files (../list-docx)
+Documentos (DOCX, DOC, PDF) (../list-docx)
     ↓
 [1] npm run rag:process
     ↓
@@ -45,10 +45,13 @@ Sistema de tracking que evita reprocessamento:
 - **Caminhos Relativos**: Portável entre máquinas
 - **Rejeição Permanente**: Arquivos rejeitados nunca são reprocessados
 
-### 2. DOCX Converter (`lib/services/docx-converter.ts`)
+### 2. Document Converter (`lib/services/document-converter.ts`)
 
-- **Conversão**: DOCX → Markdown usando `mammoth`
-- **Preservação**: Mantém estrutura (títulos, listas, parágrafos)
+- **Conversão Unificada**: Suporta DOCX, DOC, PDF → Markdown
+- **DOCX**: Usa `mammoth` (preserva estrutura completa)
+- **DOC**: Usa `textract` (Node.js puro), com fallback para LibreOffice → DOCX → mammoth, ou Pandoc
+- **PDF**: Usa `pdf-parse` (Node.js puro), com fallback para Pandoc (melhor preservação)
+- **Preservação**: Mantém estrutura (títulos, listas, parágrafos) quando possível
 - **Limpeza**: Normaliza formatação
 
 ### 3. Classifier (`lib/services/classifier.ts`)
