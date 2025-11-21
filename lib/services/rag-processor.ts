@@ -107,7 +107,8 @@ export async function processFile(
     step: number,
     message: string,
     progress: number = 0,
-    status: ProcessingProgress['status'] = 'processing'
+    status: ProcessingProgress['status'] = 'processing',
+    error?: string
   ) => {
     if (onProgress) {
       onProgress({
@@ -118,6 +119,7 @@ export async function processFile(
         totalSteps,
         progress,
         message,
+        error,
       })
     }
   }
@@ -134,8 +136,9 @@ export async function processFile(
       return { success: true }
     }
     if (existing && existing.status === 'rejected') {
-      reportProgress(totalSteps, 'Arquivo rejeitado anteriormente', 0, 'failed')
-      return { success: false, error: 'Arquivo rejeitado' }
+      const errorMsg = existing.rejectedReason || 'Arquivo rejeitado anteriormente'
+      reportProgress(totalSteps, 'Arquivo rejeitado anteriormente', 0, 'failed', errorMsg)
+      return { success: false, error: errorMsg }
     }
 
     const { markdown, wordCount } = await convertDocxWithWorker(filePath)
@@ -165,23 +168,19 @@ export async function processFile(
     reportProgress(2, 'Filtrando documento...', 30)
 
     if (!wordCount || wordCount < MIN_WORDS) {
-      await markFileRejected(
-        normalizedPath,
-        `Muito pequeno: ${wordCount} palavras (mínimo: ${MIN_WORDS})`
-      )
+      const errorMsg = `Muito pequeno: ${wordCount} palavras (mínimo: ${MIN_WORDS})`
+      await markFileRejected(normalizedPath, errorMsg)
       removeTemporaryMarkdown(fileHash)
-      reportProgress(2, `Rejeitado: muito pequeno (${wordCount} palavras)`, 0, 'failed')
-      return { success: false, error: `Muito pequeno: ${wordCount} palavras` }
+      reportProgress(2, `Rejeitado: muito pequeno (${wordCount} palavras)`, 0, 'failed', errorMsg)
+      return { success: false, error: errorMsg }
     }
 
     if (wordCount > MAX_WORDS) {
-      await markFileRejected(
-        normalizedPath,
-        `Muito grande: ${wordCount} palavras (máximo: ${MAX_WORDS})`
-      )
+      const errorMsg = `Muito grande: ${wordCount} palavras (máximo: ${MAX_WORDS})`
+      await markFileRejected(normalizedPath, errorMsg)
       removeTemporaryMarkdown(fileHash)
-      reportProgress(2, `Rejeitado: muito grande (${wordCount} palavras)`, 0, 'failed')
-      return { success: false, error: `Muito grande: ${wordCount} palavras` }
+      reportProgress(2, `Rejeitado: muito grande (${wordCount} palavras)`, 0, 'failed', errorMsg)
+      return { success: false, error: errorMsg }
     }
 
     reportProgress(2, 'Filtragem concluída', 40)
@@ -204,10 +203,11 @@ export async function processFile(
     const chunks = chunkMarkdown(cleanedMarkdown, MAX_TOKENS)
 
     if (chunks.length === 0) {
-      await markFileRejected(normalizedPath, 'Nenhum chunk gerado')
+      const errorMsg = 'Nenhum chunk gerado'
+      await markFileRejected(normalizedPath, errorMsg)
       removeTemporaryMarkdown(fileHash)
-      reportProgress(4, 'Rejeitado: nenhum chunk gerado', 0, 'failed')
-      return { success: false, error: 'Nenhum chunk gerado' }
+      reportProgress(4, 'Rejeitado: nenhum chunk gerado', 0, 'failed', errorMsg)
+      return { success: false, error: errorMsg }
     }
 
     reportProgress(4, `${chunks.length} chunks gerados`, 75)

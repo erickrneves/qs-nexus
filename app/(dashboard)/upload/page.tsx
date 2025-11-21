@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { FileUpload } from '@/components/upload/file-upload'
 import { ProcessingProgress } from '@/components/upload/processing-progress'
 import { Button } from '@/components/ui/button'
@@ -16,6 +16,11 @@ export default function UploadPage() {
   const handleFilesSelected = (files: File[]) => {
     setSelectedFiles(files)
   }
+
+  const handleJobComplete = useCallback(() => {
+    setIsProcessing(false)
+    // Não limpa os arquivos selecionados para permitir reprocessamento se necessário
+  }, [])
 
   const handleUpload = async () => {
     if (selectedFiles.length === 0) {
@@ -64,6 +69,7 @@ export default function UploadPage() {
     } catch (error) {
       console.error('Upload error:', error)
       toast.error('Erro ao processar arquivos')
+      setIsProcessing(false)
     } finally {
       setIsUploading(false)
     }
@@ -90,7 +96,7 @@ export default function UploadPage() {
         </Button>
       </div>
 
-      {jobId && <ProcessingProgress jobId={jobId} />}
+      {jobId && <ProcessingProgress jobId={jobId} onComplete={handleJobComplete} />}
     </div>
   )
 }

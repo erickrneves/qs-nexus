@@ -36,6 +36,7 @@ export async function POST(request: Request) {
     // Iniciar processamento assíncrono
     processFiles(processedFiles, (fileName, progress) => {
       // Emite evento de progresso
+      console.log(`[Process API] Emitting progress event for ${fileName}:`, progress)
       processingEvents.emit(jobId, {
         jobId,
         type: 'progress',
@@ -52,10 +53,13 @@ export async function POST(request: Request) {
     })
       .then(results => {
         // Emite evento de conclusão
+        console.log(`[Process API] Processing completed for job ${jobId}:`, results)
         const allSuccess = results.every(r => r.success)
         const failed = results.filter(r => !r.success)
 
+        const completionTimestamp = new Date().toISOString()
         if (allSuccess) {
+          console.log(`[Process API] [${completionTimestamp}] All files succeeded, emitting job-complete for job ${jobId}`)
           processingEvents.emit(jobId, {
             jobId,
             type: 'job-complete',
@@ -64,6 +68,7 @@ export async function POST(request: Request) {
             },
           })
         } else {
+          console.log(`[Process API] [${completionTimestamp}] Some files failed, emitting job-error for job ${jobId}`)
           processingEvents.emit(jobId, {
             jobId,
             type: 'job-error',
@@ -74,12 +79,22 @@ export async function POST(request: Request) {
           })
         }
 
-        // Remove listeners após 5 minutos
+        // Limpa listeners imediatamente, mas mantém histórico por mais tempo para reconexões
         setTimeout(
           () => {
             processingEvents.removeAllListeners(jobId)
+            console.log(`[Process API] Cleaned up listeners for job ${jobId}`)
           },
-          5 * 60 * 1000
+          1000 // 1 segundo após conclusão
+        )
+        
+        // Limpa histórico após mais tempo para permitir reconexões tardias
+        setTimeout(
+          () => {
+            processingEvents.clearHistory(jobId)
+            console.log(`[Process API] Cleaned up history for job ${jobId}`)
+          },
+          30 * 1000 // 30 segundos após conclusão
         )
       })
       .catch(error => {
