@@ -67,12 +67,32 @@ async function classifyDocumentTask(
     console.log(`\n📝 Classificando: ${file.filePath}`)
 
     // Classifica o documento com callback de progresso
-    const classification = await classifyDocument(markdown, message => {
-      console.log(`  ${message}`)
-    })
+    const classification = await classifyDocument(
+      markdown,
+      undefined, // configId - usa configuração ativa
+      message => {
+        console.log(`  ${message}`)
+      }
+    )
+
+    // Extrai informações do modelo e tokens do resultado da classificação
+    const modelProvider = (classification as any)._modelProvider
+    const modelName = (classification as any)._modelName
+    const inputTokens = (classification as any)._inputTokens
+    const outputTokens = (classification as any)._outputTokens
+    const cost = (classification as any)._cost
 
     // Cria TemplateDocument
-    const templateDoc = createTemplateDocument(classification, markdown, file.id)
+    const templateDoc = createTemplateDocument(
+      classification,
+      markdown,
+      file.id,
+      modelProvider,
+      modelName,
+      inputTokens,
+      outputTokens,
+      cost
+    )
 
     // Armazena template no banco
     const templateId = await storeTemplate(templateDoc, file.id)

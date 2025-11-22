@@ -8,6 +8,7 @@ import {
   FileText,
   MessageSquare,
   Scale,
+  Settings,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -29,6 +30,7 @@ const navigation = [
   { name: 'Upload', href: '/upload', icon: Upload },
   { name: 'Arquivos', href: '/files', icon: FileText },
   { name: 'Chat', href: '/chat', icon: MessageSquare },
+  { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
 interface AppSidebarProps {

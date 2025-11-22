@@ -61,6 +61,9 @@ export const areaEnum = pgEnum('area', [
 
 export const complexityEnum = pgEnum('complexity', ['simples', 'medio', 'complexo'])
 
+// Model provider enum for classification configs
+export const modelProviderEnum = pgEnum('model_provider', ['openai', 'google'])
+
 export const documentFiles = pgTable('document_files', {
   id: uuid('id').primaryKey().defaultRandom(),
   filePath: text('file_path').notNull().unique(),
@@ -74,23 +77,46 @@ export const documentFiles = pgTable('document_files', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })
 
+// Classification configs table
+export const classificationConfigs = pgTable('classification_configs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  systemPrompt: text('system_prompt').notNull(),
+  modelProvider: modelProviderEnum('model_provider').notNull(),
+  modelName: text('model_name').notNull(),
+  maxInputTokens: integer('max_input_tokens').notNull(),
+  maxOutputTokens: integer('max_output_tokens').notNull(),
+  extractionFunctionCode: text('extraction_function_code'),
+  isActive: boolean('is_active').default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+})
+
+// Template schema configs table
+export const templateSchemaConfigs = pgTable('template_schema_configs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  fields: jsonb('fields').notNull(), // Array of field definitions
+  isActive: boolean('is_active').default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+})
+
+// Refactored templates table - using JSONB metadata instead of fixed columns
 export const templates = pgTable('templates', {
   id: uuid('id').primaryKey().defaultRandom(),
   documentFileId: uuid('document_file_id')
     .notNull()
     .references(() => documentFiles.id),
   title: text('title').notNull(),
-  docType: docTypeEnum('doc_type').notNull(),
-  area: areaEnum('area').notNull(),
-  jurisdiction: text('jurisdiction').notNull().default('BR'),
-  complexity: complexityEnum('complexity').notNull(),
-  tags: text('tags').array().default([]),
-  summary: text('summary').notNull(),
   markdown: text('markdown').notNull(),
-  metadata: jsonb('metadata'),
-  qualityScore: decimal('quality_score', { precision: 5, scale: 2 }),
-  isGold: boolean('is_gold').default(false),
-  isSilver: boolean('is_silver').default(false),
+  metadata: jsonb('metadata'), // All configurable fields stored here
+  schemaConfigId: uuid('schema_config_id').references(() => templateSchemaConfigs.id),
+  modelProvider: modelProviderEnum('model_provider'), // Provider usado na classificação (openai, google)
+  modelName: text('model_name'), // Nome do modelo usado na classificação
+  inputTokens: integer('input_tokens'), // Número de tokens de input usados na classificação
+  outputTokens: integer('output_tokens'), // Número de tokens de output usados na classificação
+  costUsd: decimal('cost_usd', { precision: 10, scale: 4 }), // Custo total em USD (nullable para compatibilidade)
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })
