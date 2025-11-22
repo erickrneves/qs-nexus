@@ -116,6 +116,7 @@ export const templates = pgTable('templates', {
   modelName: text('model_name'), // Nome do modelo usado na classificação
   inputTokens: integer('input_tokens'), // Número de tokens de input usados na classificação
   outputTokens: integer('output_tokens'), // Número de tokens de output usados na classificação
+  costUsd: decimal('cost_usd', { precision: 10, scale: 4 }), // Custo total em USD (nullable para compatibilidade)
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })

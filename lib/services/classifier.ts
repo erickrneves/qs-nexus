@@ -5,7 +5,7 @@ import {
   loadClassificationConfig as loadConfigFromDB,
   type ClassificationConfig,
 } from './classification-config'
-import { getClassificationModelProvider, parseClassificationModel, parseModelProvider } from '../types/classification-models'
+import { getClassificationModelProvider, parseClassificationModel, parseModelProvider, calculateCost } from '../types/classification-models'
 import { estimateTokensForClassificationModel, estimateTokensApproximate } from '../utils/token-estimation'
 import { extractContent } from './content-extraction'
 import {
@@ -281,6 +281,7 @@ export interface ClassificationResultWithModel extends ClassificationResult {
   _modelName?: string
   _inputTokens?: number
   _outputTokens?: number
+  _cost?: number
 }
 
 export async function classifyDocument(
@@ -292,6 +293,7 @@ export async function classifyDocument(
   _modelName?: string
   _inputTokens?: number
   _outputTokens?: number
+  _cost?: number
 }> {
   // Carrega configuração
   const config = await loadConfigFromDB(configId)
@@ -382,13 +384,23 @@ export async function classifyDocument(
     // Loga fim da classificação
     onProgress?.('✅ Classificação concluída')
 
-    // Adiciona informações do modelo e tokens ao resultado
+    // Calcula custo se tiver informações de tokens
+    let cost: number | undefined
+    if (usage?.promptTokens && usage?.completionTokens) {
+      cost = calculateCost(usage.promptTokens, usage.completionTokens, classificationModel)
+      if (DEBUG) {
+        console.log(`[CLASSIFIER] Cost: $${cost.toFixed(4)}`)
+      }
+    }
+
+    // Adiciona informações do modelo, tokens e custo ao resultado
     return {
       ...result,
       _modelProvider: config.modelProvider,
       _modelName: config.modelName,
       _inputTokens: usage?.promptTokens,
       _outputTokens: usage?.completionTokens,
+      _cost: cost,
     }
   } catch (error) {
     // Retry logic para rate limit
@@ -463,13 +475,23 @@ export async function classifyDocument(
         // Loga fim da classificação (fallback)
         onProgress?.('✅ Classificação concluída')
 
-        // Adiciona informações do modelo e tokens ao resultado
+        // Calcula custo se tiver informações de tokens (fallback)
+        let fallbackCost: number | undefined
+        if (fallbackUsage?.promptTokens && fallbackUsage?.completionTokens) {
+          fallbackCost = calculateCost(fallbackUsage.promptTokens, fallbackUsage.completionTokens, classificationModel)
+          if (DEBUG) {
+            console.log(`[CLASSIFIER] Fallback Cost: $${fallbackCost.toFixed(4)}`)
+          }
+        }
+
+        // Adiciona informações do modelo, tokens e custo ao resultado
         return {
           ...fallbackResult,
           _modelProvider: config.modelProvider,
           _modelName: config.modelName,
           _inputTokens: fallbackUsage?.promptTokens,
           _outputTokens: fallbackUsage?.completionTokens,
+          _cost: fallbackCost,
         }
       } catch (fallbackError) {
         // Se ainda falhar, propaga o erro original
@@ -500,12 +522,14 @@ export function createTemplateDocument(
   modelProvider?: 'openai' | 'google',
   modelName?: string,
   inputTokens?: number,
-  outputTokens?: number
+  outputTokens?: number,
+  cost?: number
 ): TemplateDocument & { 
   modelProvider?: 'openai' | 'google'
   modelName?: string
   inputTokens?: number
   outputTokens?: number
+  cost?: number
 } {
   // Extrai campos de forma segura (com fallback para valores padrão)
   const title = (classification as any).title || ''
@@ -552,5 +576,6 @@ export function createTemplateDocument(
     modelName,
     inputTokens,
     outputTokens,
+    cost,
   }
 }

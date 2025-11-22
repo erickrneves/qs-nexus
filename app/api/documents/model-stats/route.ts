@@ -65,6 +65,39 @@ export async function GET() {
       .groupBy(templates.modelName, templates.modelProvider)
       .orderBy(sql`COALESCE(SUM(${templates.inputTokens}), 0) + COALESCE(SUM(${templates.outputTokens}), 0) DESC`)
 
+    // Total de custos
+    const totalCostResult = await db
+      .select({
+        totalCost: sql<number>`COALESCE(SUM(${templates.costUsd}), 0)::numeric`,
+      })
+      .from(templates)
+      .limit(1)
+
+    const totalCost = totalCostResult[0] || { totalCost: 0 }
+
+    // Custos por provider
+    const costByProvider = await db
+      .select({
+        provider: templates.modelProvider,
+        totalCost: sql<number>`COALESCE(SUM(${templates.costUsd}), 0)::numeric`,
+      })
+      .from(templates)
+      .where(sql`${templates.modelProvider} IS NOT NULL AND ${templates.costUsd} IS NOT NULL`)
+      .groupBy(templates.modelProvider)
+
+    // Custos por modelo (top 10)
+    const costByModel = await db
+      .select({
+        model: templates.modelName,
+        provider: templates.modelProvider,
+        totalCost: sql<number>`COALESCE(SUM(${templates.costUsd}), 0)::numeric`,
+      })
+      .from(templates)
+      .where(sql`${templates.modelName} IS NOT NULL AND ${templates.costUsd} IS NOT NULL`)
+      .groupBy(templates.modelName, templates.modelProvider)
+      .orderBy(sql`COALESCE(SUM(${templates.costUsd}), 0) DESC`)
+      .limit(10)
+
     return NextResponse.json({
       byProvider: providerStats.map(s => ({
         provider: s.provider,
@@ -92,6 +125,16 @@ export async function GET() {
         input: Number(s.totalInput),
         output: Number(s.totalOutput),
         total: Number(s.totalInput) + Number(s.totalOutput),
+      })),
+      totalCost: Number(totalCost.totalCost),
+      costByProvider: costByProvider.map(s => ({
+        provider: s.provider,
+        cost: Number(s.totalCost),
+      })),
+      costByModel: costByModel.map(s => ({
+        model: s.model,
+        provider: s.provider,
+        cost: Number(s.totalCost),
       })),
     })
   } catch (error) {

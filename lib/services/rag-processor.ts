@@ -198,11 +198,12 @@ export async function processFile(
       }
     )
 
-    // Extrai informações do modelo e tokens do resultado da classificação
+    // Extrai informações do modelo, tokens e custo do resultado da classificação
     const modelProvider = (classification as any)._modelProvider
     const modelName = (classification as any)._modelName
     const inputTokens = (classification as any)._inputTokens
     const outputTokens = (classification as any)._outputTokens
+    const cost = (classification as any)._cost
 
     const templateDoc = createTemplateDocument(
       classification,
@@ -211,7 +212,8 @@ export async function processFile(
       modelProvider,
       modelName,
       inputTokens,
-      outputTokens
+      outputTokens,
+      cost
     )
     const templateId = await storeTemplate(templateDoc, fileInfo!.id)
 

@@ -80,6 +80,7 @@ async function classifyDocumentTask(
     const modelName = (classification as any)._modelName
     const inputTokens = (classification as any)._inputTokens
     const outputTokens = (classification as any)._outputTokens
+    const cost = (classification as any)._cost
 
     // Cria TemplateDocument
     const templateDoc = createTemplateDocument(
@@ -89,7 +90,8 @@ async function classifyDocumentTask(
       modelProvider,
       modelName,
       inputTokens,
-      outputTokens
+      outputTokens,
+      cost
     )
 
     // Armazena template no banco

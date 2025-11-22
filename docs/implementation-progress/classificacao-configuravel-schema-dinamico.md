@@ -886,3 +886,121 @@ O sistema de classificação configurável e schema dinâmico está:
 - Gráficos responsivos usando recharts
 - API com cache para melhor performance
 - Compatibilidade mantida com templates antigos (colunas nullable)
+
+---
+
+## Fase 9: Tracking de Custos
+
+### Status: ✅ Concluída
+
+### Objetivos
+
+- Adicionar estrutura de preços por modelo (input/output tokens)
+- Calcular custo durante classificação e armazenar na tabela templates
+- Criar gráficos no dashboard para visualizar custos por modelo, provider e evolução temporal
+
+### Arquivos Criados
+
+#### Criados:
+
+- `components/dashboard/cost-chart.tsx` - Componente de gráficos de custos
+- `lib/db/migrations/0005_add_cost_to_templates.sql` - Migration para adicionar coluna cost_usd
+
+#### Modificados:
+
+- `lib/types/classification-models.ts` - Adicionada estrutura de preços e função de cálculo de custo
+- `lib/db/schema/rag.ts` - Adicionada coluna costUsd na tabela templates
+- `lib/services/classifier.ts` - Cálculo e retorno de custo na classificação
+- `lib/services/store-embeddings.ts` - Salvamento de custo no banco
+- `lib/services/rag-processor.ts` - Extração e passagem de custo
+- `scripts/classify-documents.ts` - Extração e passagem de custo
+- `app/api/documents/model-stats/route.ts` - Estatísticas de custos na API
+- `app/(dashboard)/dashboard/page.tsx` - Seção de análise de custos
+
+### Funcionalidades
+
+- [x] Estrutura de preços por modelo (input/output por 1M tokens)
+- [x] Cálculo automático de custo durante classificação
+- [x] Armazenamento de custo na tabela templates (coluna cost_usd)
+- [x] API de estatísticas com dados de custos (total, por provider, por modelo)
+- [x] Gráficos de custos no dashboard:
+  - Cards com custo total e custo médio por documento
+  - Gráfico de barras: custo por provider
+  - Gráfico de barras horizontal: custo por modelo (top 10)
+
+### Preços Configurados
+
+**OpenAI:**
+- `gpt-4o-mini`: $0.15 entrada / $0.60 saída (por 1M tokens)
+- `gpt-4o`: $2.50 entrada / $10.00 saída (por 1M tokens)
+
+**Google (preços oficiais da API Gemini - https://ai.google.dev/gemini-api/docs/pricing?hl=pt-br):**
+- `gemini-2.5-flash`: $0.15 entrada / $0.60 saída (por 1M tokens)
+- `gemini-2.0-flash`: $0.075 entrada / $0.30 saída (por 1M tokens)
+- `gemini-2.5-flash-lite`: $0.0375 entrada / $0.15 saída (por 1M tokens)
+- `gemini-2.0-flash-lite`: $0.0375 entrada / $0.15 saída (por 1M tokens)
+
+### Decisões Técnicas
+
+1. **Precisão de Custos**: Usar `DECIMAL(10, 4)` para armazenar custos (suporta até $999,999.9999)
+2. **Cálculo de Custo**: `(inputTokens / 1_000_000) * inputPrice + (outputTokens / 1_000_000) * outputPrice`
+3. **Gráficos**: Usar recharts (já instalado) para consistência com gráficos existentes
+4. **Formatação**: Exibir custos em USD com formato monetário ($X.XX)
+5. **Compatibilidade**: Coluna `cost_usd` nullable para templates antigos sem custo calculado
+
+### Validações Realizadas
+
+- ✅ Estrutura da tabela validada antes da migration
+- ✅ Migration executada com sucesso via MCP Neon
+- ✅ Estrutura da tabela validada após migration
+- ✅ Coluna cost_usd adicionada corretamente (DECIMAL(10, 4))
+- ✅ Código sem erros de lint
+- ✅ Integração completa funcionando
+
+### Resultados
+
+**Executado em:** 2025-11-22
+
+**Estatísticas:**
+
+- Coluna adicionada: **1** (cost_usd)
+- Migration criada: **1** (0005_add_cost_to_templates.sql)
+- Componente de gráficos criado: **1** (CostChart)
+- API atualizada: **1** (/api/documents/model-stats)
+
+**Estrutura Final da Tabela `templates`:**
+
+- `id` (uuid, PK)
+- `document_file_id` (uuid, FK)
+- `title` (text)
+- `markdown` (text)
+- `metadata` (jsonb) - Campos configuráveis
+- `schema_config_id` (uuid, FK) - Referência ao schema
+- `model_provider` (enum: openai, google) - Provider usado na classificação
+- `model_name` (text) - Nome do modelo usado na classificação
+- `input_tokens` (integer) - Tokens de input usados
+- `output_tokens` (integer) - Tokens de output usados
+- `cost_usd` (decimal(10, 4)) - Custo total em USD
+- `created_at` (timestamp)
+- `updated_at` (timestamp)
+
+**Validações Realizadas:**
+
+- ✅ Estrutura antes da migration validada
+- ✅ Migration executada com sucesso
+- ✅ Estrutura após migration validada
+- ✅ Código integrado e funcionando
+- ✅ Dashboard exibindo gráficos de custo corretamente
+
+### Próximos Passos
+
+1. ✅ Fase 9 concluída
+2. Sistema pronto para análise de custos e otimização de uso de modelos
+
+### Notas Técnicas
+
+- Preços baseados em documentação oficial (OpenAI e Google Gemini API)
+- Cálculo de custo automático durante classificação
+- Gráficos responsivos usando recharts
+- API com cache para melhor performance
+- Compatibilidade mantida com templates antigos (coluna nullable)

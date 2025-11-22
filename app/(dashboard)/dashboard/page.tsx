@@ -7,6 +7,7 @@ import { AreaChart } from '@/components/dashboard/area-chart'
 import { ProviderChart } from '@/components/dashboard/provider-chart'
 import { ModelChart } from '@/components/dashboard/model-chart'
 import { TokensChart } from '@/components/dashboard/tokens-chart'
+import { CostChart } from '@/components/dashboard/cost-chart'
 import { RecentFiles } from '@/components/dashboard/recent-files'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -59,6 +60,9 @@ interface ModelStatsData {
     output: number
     total: number
   }>
+  totalCost: number
+  costByProvider: Array<{ provider: string; cost: number }>
+  costByModel: Array<{ model: string; provider: string; cost: number }>
 }
 
 export default function DashboardPage() {
@@ -231,6 +235,21 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Cost Analysis Section */}
+          <div className="space-y-1">
+            <h2 className="text-2xl font-bold tracking-tight">Análise de Custos</h2>
+            <p className="text-muted-foreground">
+              Análise de custos de classificação por modelo e provider
+            </p>
+          </div>
+
+          <CostChart
+            totalCost={modelStats.totalCost || 0}
+            costByProvider={modelStats.costByProvider || []}
+            costByModel={modelStats.costByModel || []}
+            totalDocuments={stats.summary.completed}
+          />
         </>
       )}
 

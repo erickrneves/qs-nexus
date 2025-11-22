@@ -18,6 +18,7 @@ export interface ChunkWithEmbedding extends Chunk {
  * @param modelName - Nome do modelo usado na classificação (opcional)
  * @param inputTokens - Número de tokens de input usados (opcional)
  * @param outputTokens - Número de tokens de output usados (opcional)
+ * @param cost - Custo total em USD (opcional)
  */
 export async function storeTemplate(
   template: TemplateDocument & { 
@@ -25,12 +26,14 @@ export async function storeTemplate(
     modelName?: string
     inputTokens?: number
     outputTokens?: number
+    cost?: number
   },
   documentFileId: string,
   modelProvider?: 'openai' | 'google',
   modelName?: string,
   inputTokens?: number,
-  outputTokens?: number
+  outputTokens?: number,
+  cost?: number
 ): Promise<string> {
   // Busca schema config ativo (ou cria um padrão se não existir)
   let schemaConfigId: string | undefined
@@ -73,6 +76,7 @@ export async function storeTemplate(
   const finalModelName = (template as any).modelName || modelName || null
   const finalInputTokens = (template as any).inputTokens ?? inputTokens ?? null
   const finalOutputTokens = (template as any).outputTokens ?? outputTokens ?? null
+  const finalCost = (template as any).cost ?? cost ?? null
 
   const [inserted] = await db
     .insert(templates)
@@ -86,6 +90,7 @@ export async function storeTemplate(
       modelName: finalModelName,
       inputTokens: finalInputTokens,
       outputTokens: finalOutputTokens,
+      costUsd: finalCost !== null ? finalCost.toString() : null,
     })
     .returning()
 
