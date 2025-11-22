@@ -1,10 +1,10 @@
 # Documentação do Sistema RAG LegalWise
 
-Este projeto implementa um sistema completo de RAG (Retrieval-Augmented Generation) para processar documentos jurídicos DOCX, convertê-los para Markdown, classificá-los com metadados estruturados e gerar embeddings para uso em um agente de IA.
+Este projeto implementa um sistema completo de RAG (Retrieval-Augmented Generation) para processar documentos jurídicos (DOCX, DOC, PDF), convertê-los para Markdown, classificá-los com metadados estruturados e gerar embeddings para uso em um agente de IA.
 
 ## Objetivo
 
-O objetivo principal é criar um sistema RAG que sirva como base de conhecimento para treinar um agente de IA a gerar documentos jurídicos. Os documentos DOCX servem como exemplos/templates de como um documento jurídico deve ser estruturado.
+O objetivo principal é criar um sistema RAG que sirva como base de conhecimento para treinar um agente de IA a gerar documentos jurídicos. Os documentos (DOCX, DOC, PDF) servem como exemplos/templates de como um documento jurídico deve ser estruturado.
 
 ## Arquitetura Atual
 
@@ -22,8 +22,11 @@ O pipeline atual segue os seguintes passos:
 
 ### 1. Processamento de Documentos (`npm run rag:process`)
 
-- Varre recursivamente arquivos DOCX em `../list-docx` (caminho relativo)
-- Converte DOCX → Markdown usando `mammoth`
+- Varre recursivamente arquivos DOCX, DOC e PDF em `../list-docx` (caminho relativo)
+- Converte documentos → Markdown preservando formatação:
+  - **DOCX**: Usa `mammoth` (preserva estrutura completa)
+  - **DOC**: Usa `textract` (Node.js puro), com fallback para LibreOffice ou Pandoc
+  - **PDF**: Usa `pdf-parse` (Node.js puro), com fallback para Pandoc (melhor qualidade)
 - Calcula hash SHA256 para tracking
 - Armazena status no banco de dados
 
@@ -79,7 +82,7 @@ O pipeline atual segue os seguintes passos:
 
 ✅ **Tracking de Processamento**: Evita reprocessamento de arquivos já processados  
 ✅ **Caminhos Relativos**: Portável entre diferentes máquinas  
-✅ **Conversão Markdown**: Preserva estrutura do documento  
+✅ **Conversão Markdown**: Preserva estrutura do documento (suporta DOCX, DOC, PDF)  
 ✅ **Classificação Inteligente**: Metadados estruturados com TemplateDocument  
 ✅ **Chunking Inteligente**: Por seções Markdown quando possível  
 ✅ **Embeddings Otimizados**: text-embedding-3-small (custo-benefício)  
@@ -87,7 +90,7 @@ O pipeline atual segue os seguintes passos:
 ✅ **Relatórios de Status**: `processing-status.json`  
 ✅ **Reprocessamento Individual**: Permite reprocessar arquivos específicos  
 ✅ **Paralelização Completa**: Todos os scripts principais são paralelos  
-✅ **Worker Threads**: Processamento isolado de conversão DOCX  
+✅ **Worker Threads**: Processamento isolado de conversão de documentos (DOCX, DOC, PDF)  
 ✅ **ConcurrencyPool**: Sistema de pool de concorrência com retry logic
 
 ## Documentação Adicional

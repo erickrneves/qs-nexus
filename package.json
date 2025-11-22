@@ -23,11 +23,13 @@
     "rag:fix-status": "tsx scripts/fix-processing-status.ts",
     "rag:reset-missing": "tsx scripts/reset-missing-markdown.ts",
     "rag:reject-failed": "tsx scripts/reject-failed-processing.ts",
+    "rag:convert-debug": "tsx scripts/convert-pdf-debug.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx lib/db/migrate.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@ai-sdk/google": "^1.0.0",
     "@ai-sdk/openai": "^1.0.0",
     "@auth/drizzle-adapter": "^1.11.1",
     "@hookform/resolvers": "^5.2.2",
@@ -54,6 +56,8 @@
     "next": "^14.2.33",
     "next-auth": "^5.0.0-beta.30",
     "next-themes": "^0.4.6",
+    "pdf-parse": "^2.4.5",
+    "pdfjs-dist": "^5.4.394",
     "pgvector": "^0.1.8",
     "postgres": "^3.4.5",
     "react": "^18.3.1",
@@ -63,6 +67,7 @@
     "recharts": "^3.4.1",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
+    "textract": "^2.5.0",
     "tiktoken": "^1.0.19",
     "uuid": "^13.0.0",
     "zod": "^3.25.76"
@@ -72,6 +77,7 @@
     "@tailwindcss/postcss": "^4.1.17",
     "@types/node": "^22.10.5",
     "@types/react": "19.2.6",
+    "@types/textract": "^2.4.5",
     "@typescript-eslint/eslint-plugin": "^8.47.0",
     "@typescript-eslint/parser": "^8.47.0",
     "autoprefixer": "^10.4.22",

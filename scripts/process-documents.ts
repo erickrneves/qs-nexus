@@ -26,10 +26,10 @@ const PROJECT_ROOT = process.cwd()
 
 // Caminho do worker thread
 const WORKER_PATH = fileURLToPath(
-  new URL('../lib/workers/docx-converter-worker.ts', import.meta.url)
+  new URL('../lib/workers/document-converter-worker.ts', import.meta.url)
 )
 
-async function findDocxFiles(dir: string): Promise<string[]> {
+async function findDocumentFiles(dir: string): Promise<string[]> {
   const files: string[] = []
   const entries = readdirSync(dir, { withFileTypes: true })
 
@@ -37,9 +37,12 @@ async function findDocxFiles(dir: string): Promise<string[]> {
     const fullPath = join(dir, entry.name)
 
     if (entry.isDirectory()) {
-      files.push(...(await findDocxFiles(fullPath)))
-    } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.docx')) {
-      files.push(fullPath)
+      files.push(...(await findDocumentFiles(fullPath)))
+    } else if (entry.isFile()) {
+      const fileName = entry.name.toLowerCase()
+      if (fileName.endsWith('.docx') || fileName.endsWith('.doc') || fileName.endsWith('.pdf')) {
+        files.push(fullPath)
+      }
     }
   }
 
@@ -53,9 +56,10 @@ interface ProcessResult {
 }
 
 /**
- * Converte DOCX para Markdown usando Worker Thread
+ * Converte documento para Markdown usando Worker Thread
+ * Suporta: .docx, .doc, .pdf
  */
-function convertDocxWithWorker(filePath: string): Promise<{ markdown: string; wordCount: number }> {
+function convertDocumentWithWorker(filePath: string): Promise<{ markdown: string; wordCount: number }> {
   return new Promise((resolve, reject) => {
     const taskId = `${Date.now()}-${Math.random()}`
     const DEBUG = process.env.DEBUG === 'true'
@@ -176,8 +180,8 @@ async function processDocument(filePath: string): Promise<ProcessResult | null> 
       }
     }
 
-    // Converte DOCX → Markdown usando Worker Thread
-    const { markdown, wordCount } = await convertDocxWithWorker(filePath)
+    // Converte documento → Markdown usando Worker Thread
+    const { markdown, wordCount } = await convertDocumentWithWorker(filePath)
     const cleanedMarkdown = cleanMarkdown(markdown)
 
     // Salva markdown temporário para uso na classificação
@@ -214,11 +218,11 @@ async function processDocument(filePath: string): Promise<ProcessResult | null> 
 }
 
 async function main() {
-  console.log('🔍 Procurando arquivos DOCX...')
+  console.log('🔍 Procurando arquivos DOCX, DOC e PDF...')
   const sourceDir = resolve(PROJECT_ROOT, DOCX_SOURCE_DIR)
-  const files = await findDocxFiles(sourceDir)
+  const files = await findDocumentFiles(sourceDir)
 
-  console.log(`📄 Encontrados ${files.length} arquivos DOCX`)
+  console.log(`📄 Encontrados ${files.length} arquivos (DOCX, DOC, PDF)`)
   console.log(`⚙️  Usando ${WORKER_CONCURRENCY} workers paralelos\n`)
 
   // Cria pool de concorrência

@@ -27,7 +27,9 @@ export function FileUpload({ onFilesSelected, maxSize = 50 }: FileUploadProps) {
       const validFiles: File[] = []
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i]
-        if (file.name.endsWith('.docx')) {
+        const fileName = file.name.toLowerCase()
+        const isValidFormat = fileName.endsWith('.docx') || fileName.endsWith('.doc') || fileName.endsWith('.pdf')
+        if (isValidFormat) {
           if (file.size <= maxSize * 1024 * 1024) {
             validFiles.push(file)
           }
@@ -84,7 +86,7 @@ export function FileUpload({ onFilesSelected, maxSize = 50 }: FileUploadProps) {
         <CardContent className="flex flex-col items-center justify-center p-12">
           <Upload className="h-12 w-12 text-muted-foreground mb-4" />
           <p className="text-lg font-semibold mb-2">
-            Arraste arquivos DOCX aqui ou clique para selecionar
+            Arraste arquivos DOCX, DOC ou PDF aqui ou clique para selecionar
           </p>
           <p className="text-sm text-muted-foreground mb-6">
             Tamanho máximo: {maxSize}MB por arquivo
@@ -111,7 +113,7 @@ export function FileUpload({ onFilesSelected, maxSize = 50 }: FileUploadProps) {
             id="file-input"
             type="file"
             multiple
-            accept=".docx"
+            accept=".docx,.doc,.pdf"
             className="hidden"
             onChange={e => handleFileSelect(e.target.files)}
           />
@@ -120,7 +122,7 @@ export function FileUpload({ onFilesSelected, maxSize = 50 }: FileUploadProps) {
             type="file"
             {...({ webkitdirectory: '' } as any)}
             multiple
-            accept=".docx"
+            accept=".docx,.doc,.pdf"
             className="hidden"
             onChange={handleFolderSelect}
           />
