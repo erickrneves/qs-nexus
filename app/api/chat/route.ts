@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { streamText } from 'ai'
-import { openai } from '@ai-sdk/openai'
 import { searchSimilarChunks } from '@/lib/services/rag-search'
 import { auth } from '@/lib/auth/config'
+import { ChatModel, getModelProvider } from '@/lib/types/chat-models'
 
 export interface ChatMessage {
   role: 'user' | 'assistant'
@@ -55,6 +55,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    
+    // Extrai o modelo escolhido (default: GPT-4o Mini)
+    const modelEnum = (body.model as ChatModel) || ChatModel.OPENAI_GPT_4O_MINI
     
     // Suporta tanto o formato do AI SDK (messages) quanto o formato customizado (message + history)
     let message: string
@@ -155,11 +158,15 @@ ${ragContext}`
     console.log('\n=== PROMPT ENVIADO AO LLM ===')
     console.log(`System Prompt (primeiros 500 chars):\n${systemPrompt.substring(0, 500)}...`)
     console.log(`\nUser Prompt:\n${userPrompt}`)
+    console.log(`Modelo selecionado: ${modelEnum}`)
     console.log('=============================\n')
+
+    // Obtém o provider e modelo correto
+    const { model } = getModelProvider(modelEnum)
 
     // Gera resposta com streaming
     const result = await streamText({
-      model: openai('gpt-4o-mini'),
+      model,
       system: systemPrompt,
       prompt: userPrompt,
       temperature: 0.7,

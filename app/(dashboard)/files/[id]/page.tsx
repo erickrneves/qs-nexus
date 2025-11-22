@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { FileDetailsSkeleton } from '@/components/loading-skeletons'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { ArrowLeft, RefreshCw, Edit, Save, X, Loader2, Upload, FileText, Trash2 } from 'lucide-react'
+import { ArrowLeft, RefreshCw, Edit, Save, X, Loader2, Upload, FileText, Trash2, Eye, Code } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
+import ReactMarkdown from 'react-markdown'
 
 interface FileDetails {
   id: string
@@ -58,6 +59,7 @@ export default function FileDetailsPage() {
   const [isEditingMarkdown, setIsEditingMarkdown] = useState(false)
   const [editedMarkdown, setEditedMarkdown] = useState('')
   const [isSavingMarkdown, setIsSavingMarkdown] = useState(false)
+  const [markdownViewMode, setMarkdownViewMode] = useState<'code' | 'preview'>('code')
   const [isReprocessing, setIsReprocessing] = useState(false)
   const [isRegeneratingChunks, setIsRegeneratingChunks] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -606,6 +608,20 @@ export default function FileDetailsPage() {
                 <p className="text-sm font-medium text-muted-foreground">Resumo</p>
                 <p className="text-sm">{template.summary}</p>
               </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-2">Tags</p>
+                {template.tags && template.tags.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {template.tags.map((tag, index) => (
+                      <Badge key={index} variant="outline">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Nenhuma tag</p>
+                )}
+              </div>
             </CardContent>
           </Card>
         )}
@@ -617,10 +633,31 @@ export default function FileDetailsPage() {
             <div className="flex items-center justify-between">
               <CardTitle>Markdown</CardTitle>
               {!isEditingMarkdown ? (
-                <Button variant="outline" size="sm" onClick={handleEditMarkdown}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Editar
-                </Button>
+                <div className="flex gap-2">
+                  {markdownViewMode === 'code' ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMarkdownViewMode('preview')}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Ver Preview
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMarkdownViewMode('code')}
+                    >
+                      <Code className="h-4 w-4 mr-2" />
+                      Ver Código
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" onClick={handleEditMarkdown}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Editar
+                  </Button>
+                </div>
               ) : (
                 <div className="flex gap-2">
                   <Button
@@ -661,6 +698,10 @@ export default function FileDetailsPage() {
                 className="font-mono text-xs min-h-[400px]"
                 placeholder="Digite o markdown aqui..."
               />
+            ) : markdownViewMode === 'preview' ? (
+              <div className="prose prose-sm max-w-none bg-muted p-4 rounded-lg overflow-auto max-h-[600px]">
+                <ReactMarkdown>{template.markdown}</ReactMarkdown>
+              </div>
             ) : (
               <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto max-h-[600px] whitespace-pre-wrap">
                 {template.markdown}

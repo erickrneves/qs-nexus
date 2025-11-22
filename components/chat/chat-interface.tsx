@@ -5,15 +5,28 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Send, Trash2, Loader2 } from 'lucide-react'
 import { useChat } from 'ai/react'
 import { cn } from '@/lib/utils'
 import { toast } from 'react-hot-toast'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { ChatModel, getModelLabel } from '@/lib/types/chat-models'
 
 export function ChatInterface() {
+  const [selectedModel, setSelectedModel] = useState<ChatModel>(ChatModel.OPENAI_GPT_4O_MINI)
+
   const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = useChat({
     api: '/api/chat',
+    body: {
+      model: selectedModel,
+    },
     onError: error => {
       console.error('Erro no chat:', error)
       toast.error('Erro ao enviar mensagem. Tente novamente.')
@@ -65,29 +78,60 @@ export function ChatInterface() {
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="border-b p-4">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1">
             <h2 className="text-lg font-semibold">Chat RAG</h2>
             <p className="text-sm text-muted-foreground">
               Faça perguntas sobre os documentos jurídicos processados
             </p>
           </div>
-          {messages.length > 0 && (
-            <ConfirmDialog
-              trigger={
-                <Button variant="outline" size="sm" disabled={isLoading}>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Limpar
-                </Button>
-              }
-              title="Limpar conversa"
-              description="Tem certeza que deseja limpar toda a conversa? Esta ação não pode ser desfeita."
-              confirmText="Limpar"
-              cancelText="Cancelar"
-              variant="destructive"
-              onConfirm={handleClear}
-            />
-          )}
+          <div className="flex items-center gap-2">
+            <Select
+              value={selectedModel}
+              onValueChange={value => setSelectedModel(value as ChatModel)}
+              disabled={isLoading}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Selecione o modelo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ChatModel.OPENAI_GPT_4O_MINI}>
+                  {getModelLabel(ChatModel.OPENAI_GPT_4O_MINI)}
+                </SelectItem>
+                <SelectItem value={ChatModel.OPENAI_GPT_4O}>
+                  {getModelLabel(ChatModel.OPENAI_GPT_4O)}
+                </SelectItem>
+                <SelectItem value={ChatModel.GOOGLE_GEMINI_2_0_FLASH}>
+                  {getModelLabel(ChatModel.GOOGLE_GEMINI_2_0_FLASH)}
+                </SelectItem>
+                <SelectItem value={ChatModel.GOOGLE_GEMINI_2_0_FLASH_LITE}>
+                  {getModelLabel(ChatModel.GOOGLE_GEMINI_2_0_FLASH_LITE)}
+                </SelectItem>
+                <SelectItem value={ChatModel.GOOGLE_GEMINI_2_5_FLASH}>
+                  {getModelLabel(ChatModel.GOOGLE_GEMINI_2_5_FLASH)}
+                </SelectItem>
+                <SelectItem value={ChatModel.GOOGLE_GEMINI_2_5_FLASH_LITE}>
+                  {getModelLabel(ChatModel.GOOGLE_GEMINI_2_5_FLASH_LITE)}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            {messages.length > 0 && (
+              <ConfirmDialog
+                trigger={
+                  <Button variant="outline" size="sm" disabled={isLoading}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Limpar
+                  </Button>
+                }
+                title="Limpar conversa"
+                description="Tem certeza que deseja limpar toda a conversa? Esta ação não pode ser desfeita."
+                confirmText="Limpar"
+                cancelText="Cancelar"
+                variant="destructive"
+                onConfirm={handleClear}
+              />
+            )}
+          </div>
         </div>
       </div>
 
