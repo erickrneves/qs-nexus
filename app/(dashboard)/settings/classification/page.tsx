@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ModelSelector } from '@/components/settings/model-selector'
 import { CodeEditor } from '@/components/settings/code-editor'
+import { SchemaPromptPreview } from '@/components/settings/schema-prompt-preview'
 import { toast } from 'react-hot-toast'
 import { Plus, Trash2, Edit2, Check, X } from 'lucide-react'
 import {
@@ -225,7 +226,12 @@ export default function ClassificationSettingsPage() {
                   rows={8}
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  O prompt do schema será automaticamente adicionado ao final deste prompt durante a classificação.
+                </p>
               </div>
+
+              <SchemaPromptPreview />
 
               <ModelSelector
                 provider={formData.modelProvider}

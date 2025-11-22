@@ -1004,3 +1004,121 @@ O sistema de classificação configurável e schema dinâmico está:
 - Gráficos responsivos usando recharts
 - API com cache para melhor performance
 - Compatibilidade mantida com templates antigos (coluna nullable)
+
+---
+
+## Fase 10: Geração Dinâmica de Prompt do Schema
+
+### Status: ✅ Concluída
+
+### Objetivos
+
+- Gerar automaticamente a seção "Extraia:" do system prompt baseada no schema dinâmico configurado
+- Evitar inconsistências entre schema e prompt manual
+- Adicionar preview do prompt gerado na página de configuração de classificação
+- Concatenar automaticamente o prompt do schema com o system prompt durante a classificação
+
+### Arquivos Criados
+
+#### Criados:
+
+- `lib/services/schema-prompt-generator.ts` - Função de geração de prompt do schema
+- `app/api/template-schema/prompt-preview/route.ts` - API para preview do prompt
+- `components/settings/schema-prompt-preview.tsx` - Componente de preview do prompt
+
+#### Modificados:
+
+- `lib/services/classifier.ts` - Concatenação de prompts e atualização de cálculo de tokens
+- `app/(dashboard)/settings/classification/page.tsx` - Adicionado preview do prompt do schema
+
+### Funcionalidades
+
+- [x] Função `generateSchemaPrompt()` que gera seção "Extraia:" baseada no schema
+- [x] Suporte a todos os tipos de campos (string, number, boolean, enum, literal, array, object, union)
+- [x] Formatação de campos aninhados recursivamente
+- [x] Formatação de arrays de objetos com estrutura detalhada
+- [x] Concatenação automática do prompt do schema com system prompt
+- [x] Cálculo de tokens atualizado para incluir prompt completo
+- [x] API para preview do prompt gerado
+- [x] Componente de preview no front-end
+- [x] Preview exibido na página de configuração de classificação
+
+### Decisões Técnicas
+
+1. **Geração de Prompt**:
+   - Formato: Lista numerada com campos em negrito
+   - Campos obrigatórios: `**Nome**`
+   - Campos opcionais: `**Nome** (opcional)`
+   - Descrições: Incluídas quando disponíveis
+   - Tipos: Formatados de forma legível (enum com valores, number com min/max, etc.)
+
+2. **Campos Aninhados**:
+   - Objetos: Campos listados com indentação
+   - Arrays de objetos: Estrutura de cada item mostrada
+   - Recursão: Suporta níveis múltiplos de aninhamento
+
+3. **Concatenação**:
+   - Separador: `\n\n` entre system prompt e prompt do schema
+   - Compatibilidade: Se não houver schema ativo, usa apenas system prompt
+   - Ordem: System prompt primeiro, depois prompt do schema
+
+4. **Cálculo de Tokens**:
+   - Prompt completo (system + schema) considerado no cálculo
+   - Função `prepareMarkdownContent()` atualizada para receber prompt completo
+   - Tokens do schema prompt incluídos na estimativa
+
+5. **Preview no Front-end**:
+   - Carrega schema ativo automaticamente
+   - Atualiza quando schema muda
+   - Exibe mensagem de erro se não houver schema ativo
+   - Formatação consistente com outros componentes de settings
+
+### Validações Realizadas
+
+- ✅ Função de geração de prompt testada com todos os tipos de campos
+- ✅ Campos aninhados formatados corretamente
+- ✅ Arrays de objetos formatados com estrutura detalhada
+- ✅ Concatenação funcionando corretamente no classificador
+- ✅ Cálculo de tokens considerando prompt completo
+- ✅ Preview funcionando no front-end
+- ✅ Código sem erros de lint
+
+### Resultados
+
+**Executado em:** 2025-01-22
+
+**Estatísticas:**
+
+- Função de geração criada: **1** (`generateSchemaPrompt`)
+- API de preview criada: **1** (`/api/template-schema/prompt-preview`)
+- Componente de preview criado: **1** (`SchemaPromptPreview`)
+- Arquivos modificados: **2** (classifier.ts, classification page)
+
+**Funcionalidades Implementadas:**
+
+- ✅ Geração automática de prompt do schema
+- ✅ Preview em tempo real do prompt gerado
+- ✅ Concatenação automática durante classificação
+- ✅ Cálculo de tokens atualizado
+- ✅ Suporte completo a todos os tipos de campos
+
+**Validações Realizadas:**
+
+- ✅ Geração de prompt funcionando para todos os tipos de campos
+- ✅ Campos aninhados formatados corretamente
+- ✅ Concatenação funcionando no classificador
+- ✅ Preview funcionando no front-end
+- ✅ Código integrado e funcionando
+
+### Próximos Passos
+
+1. ✅ Fase 10 concluída
+2. Sistema pronto para uso com geração automática de prompt do schema
+
+### Notas Técnicas
+
+- Geração de prompt baseada em definições de campos do schema
+- Formatação legível e consistente
+- Suporte completo a tipos complexos (objetos, arrays, unions)
+- Compatibilidade mantida com código existente
+- Preview em tempo real para facilitar configuração

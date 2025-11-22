@@ -221,6 +221,34 @@ Retorna estatísticas de modelos e tokens usados na classificação.
       "output": 100000,
       "total": 3100000
     }
+  ],
+  "totalCost": 125.4567,
+  "costByProvider": [
+    {
+      "provider": "openai",
+      "cost": 100.2345
+    },
+    {
+      "provider": "google",
+      "cost": 25.2222
+    }
+  ],
+  "costByModel": [
+    {
+      "model": "gpt-4o",
+      "provider": "openai",
+      "cost": 80.1234
+    },
+    {
+      "model": "gpt-4o-mini",
+      "provider": "openai",
+      "cost": 20.1111
+    },
+    {
+      "model": "gemini-2.0-flash",
+      "provider": "google",
+      "cost": 25.2222
+    }
   ]
 }
 ```
@@ -232,6 +260,9 @@ Retorna estatísticas de modelos e tokens usados na classificação.
 - `totalTokens`: Total de tokens usados (input, output, total)
 - `tokensByProvider`: Tokens agregados por provider
 - `tokensByModel`: Tokens agregados por modelo (ordenado por total DESC)
+- `totalCost`: Custo total em USD de todas as classificações
+- `costByProvider`: Custos agregados por provider (ordenado por custo DESC)
+- `costByModel`: Custos agregados por modelo (top 10, ordenado por custo DESC)
 
 **Exemplo:**
 

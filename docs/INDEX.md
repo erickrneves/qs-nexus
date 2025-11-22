@@ -151,6 +151,7 @@ Guia de classificação configurável:
 - Como criar e configurar classificações
 - Múltiplos providers e modelos
 - System prompt customizado
+- Geração dinâmica de prompt do schema
 - Função de extração customizada
 - Limites de tokens
 - Truncamento inteligente
@@ -164,6 +165,7 @@ Guia de schema dinâmico de templates:
 - Tipos de campo disponíveis
 - Campos aninhados e arrays
 - Validação e preview
+- Geração automática de prompt do schema
 - Como o sistema funciona
 - Dicas e melhores práticas
 
@@ -210,6 +212,18 @@ Guia de tracking de modelos e tokens:
 - API de estatísticas
 - Casos de uso e exemplos
 - Troubleshooting
+
+### [cost-tracking.md](./guides/cost-tracking.md)
+
+Guia de tracking de custos:
+
+- Como funciona o cálculo de custos
+- Estrutura de preços por modelo
+- Visualização no dashboard
+- API de estatísticas de custos
+- Casos de uso e exemplos
+- Troubleshooting
+- Atualização de preços
 
 ## Referência Técnica
 
@@ -278,17 +292,20 @@ Referência de APIs de Classificação e Schema:
 
 ## Últimas Implementações
 
-### Tracking de Modelos e Tokens (2025-11-22)
+### Tracking de Modelos, Tokens e Custos (2025-11-22)
 
 - ✅ **Logs de Debug**: Logs detalhados quando `DEBUG=true` mostrando provider, modelo e tokens usados
 - ✅ **Armazenamento de Modelo**: Colunas `model_provider` e `model_name` na tabela templates
 - ✅ **Armazenamento de Tokens**: Colunas `input_tokens` e `output_tokens` na tabela templates
+- ✅ **Armazenamento de Custos**: Coluna `cost_usd` na tabela templates com cálculo automático
 - ✅ **Captura de Tokens**: Uso direto do objeto `usage` do AI SDK para precisão
-- ✅ **API de Estatísticas**: Endpoint `/api/documents/model-stats` com estatísticas agregadas
+- ✅ **Cálculo de Custos**: Cálculo automático baseado em preços oficiais dos providers
+- ✅ **API de Estatísticas**: Endpoint `/api/documents/model-stats` com estatísticas agregadas (modelos, tokens e custos)
 - ✅ **Dashboard de Modelos**: Gráficos de documentos por provider e modelo
 - ✅ **Dashboard de Tokens**: Gráficos de distribuição e uso de tokens por provider e modelo
+- ✅ **Dashboard de Custos**: Gráficos de custos por provider e modelo com análise completa
 
-Ver [CHANGELOG-2025-11-22.md](./CHANGELOG-2025-11-22.md) para detalhes completos.
+Ver [CHANGELOG-2025-11-22.md](./CHANGELOG-2025-11-22.md) e [Guia de Tracking de Custos](./guides/cost-tracking.md) para detalhes completos.
 
 ### Sistema de Classificação Configurável e Schema Dinâmico (2025-01-22)
 
@@ -300,6 +317,7 @@ Ver [CHANGELOG-2025-11-22.md](./CHANGELOG-2025-11-22.md) para detalhes completos
 - ✅ **Estimativa de Tokens**: Uso de tiktoken para estimativa precisa
 - ✅ **Função de Extração Customizada**: Função JavaScript customizada para extrair conteúdo
 - ✅ **Truncamento Inteligente**: Baseado em limites de tokens do modelo
+- ✅ **Geração Dinâmica de Prompt**: Prompt do schema gerado automaticamente a partir do schema configurado
 - ✅ **Interface Completa**: Página de settings com configuração de classificação e schema
 - ✅ **Migração de Dados**: 2365 templates migrados para formato JSONB
 

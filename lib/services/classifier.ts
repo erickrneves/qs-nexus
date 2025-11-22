@@ -15,6 +15,7 @@ import {
 } from './content-truncation'
 import { buildZodSchemaFromConfig } from './schema-builder'
 import { loadTemplateSchemaConfig } from './template-schema-service'
+import { generateSchemaPrompt } from './schema-prompt-generator'
 
 /**
  * Schema de classificação baseado no TemplateDocumentSchema
@@ -225,14 +226,17 @@ export async function buildClassificationSchema(schemaConfigId?: string): Promis
  */
 export async function prepareMarkdownContent(
   markdown: string,
-  config: ClassificationConfig
+  config: ClassificationConfig,
+  fullSystemPrompt?: string
 ): Promise<string> {
   // Estima tokens do documento completo
   const classificationModel = parseClassificationModel(config.modelName, config.modelProvider)
   const fullDocTokens = estimateTokensForClassificationModel(markdown, classificationModel)
 
   // Calcula tokens disponíveis
-  const systemPromptTokens = estimateTokensApproximate(config.systemPrompt)
+  // Usa o prompt completo (system prompt + schema prompt) se fornecido, senão usa apenas system prompt
+  const systemPromptToUse = fullSystemPrompt || config.systemPrompt
+  const systemPromptTokens = estimateTokensApproximate(systemPromptToUse)
   const userPromptBase = 'Analise o documento abaixo (formato Markdown) e classifique-o conforme as instruções.\n\n---\n\n'
   const userPromptTokens = estimateTokensApproximate(userPromptBase)
   const availableTokens = calculateAvailableTokens(
@@ -298,17 +302,6 @@ export async function classifyDocument(
   // Carrega configuração
   const config = await loadConfigFromDB(configId)
 
-  // Prepara conteúdo
-  const originalTokens = estimateTokensApproximate(markdown)
-  const processedMarkdown = await prepareMarkdownContent(markdown, config)
-  const processedTokens = estimateTokensApproximate(processedMarkdown)
-  const tokensSaved = originalTokens - processedTokens
-
-  if (tokensSaved > 0) {
-    const savingsPercent = Math.round((tokensSaved / originalTokens) * 100)
-    onProgress?.(`💰 Economia de tokens: ${tokensSaved.toLocaleString()} (${savingsPercent}%)`)
-  }
-
   // Obtém provider do modelo
   const classificationModel = parseClassificationModel(config.modelName, config.modelProvider)
   const { model } = getClassificationModelProvider(classificationModel)
@@ -321,10 +314,11 @@ export async function classifyDocument(
     console.log(`[CLASSIFIER] Classification Model: ${classificationModel}`)
   }
 
-  // Carrega schema config para obter o ID (necessário para validação)
+  // Carrega schema config para obter o ID (necessário para validação) e gerar prompt
   let schemaConfigId: string | undefined
+  let schemaConfig: Awaited<ReturnType<typeof loadTemplateSchemaConfig>> | undefined
   try {
-    const schemaConfig = await loadTemplateSchemaConfig()
+    schemaConfig = await loadTemplateSchemaConfig()
     schemaConfigId = schemaConfig.id
   } catch (error) {
     console.warn('⚠️  Não foi possível carregar schema config para validação:', error)
@@ -334,6 +328,28 @@ export async function classifyDocument(
   // Tenta usar o schema do template associado, se disponível
   // Por enquanto, usa schema padrão (será melhorado na Fase 4 com API)
   const classificationSchema = await buildClassificationSchema(schemaConfigId)
+
+  // Gera prompt do schema e concatena com system prompt
+  let fullSystemPrompt = config.systemPrompt
+  if (schemaConfig) {
+    try {
+      const schemaPrompt = generateSchemaPrompt(schemaConfig)
+      fullSystemPrompt = `${config.systemPrompt}\n\n${schemaPrompt}`
+    } catch (error) {
+      console.warn('⚠️  Erro ao gerar prompt do schema, usando apenas system prompt:', error)
+    }
+  }
+
+  // Prepara conteúdo considerando o prompt completo
+  const originalTokens = estimateTokensApproximate(markdown)
+  const processedMarkdown = await prepareMarkdownContent(markdown, config, fullSystemPrompt)
+  const processedTokens = estimateTokensApproximate(processedMarkdown)
+  const tokensSaved = originalTokens - processedTokens
+
+  if (tokensSaved > 0) {
+    const savingsPercent = Math.round((tokensSaved / originalTokens) * 100)
+    onProgress?.(`💰 Economia de tokens: ${tokensSaved.toLocaleString()} (${savingsPercent}%)`)
+  }
 
   // Loga início da classificação
   onProgress?.('⏳ Iniciando classificação...')
@@ -345,7 +361,7 @@ export async function classifyDocument(
       messages: [
         {
           role: 'system',
-          content: config.systemPrompt,
+          content: fullSystemPrompt,
         },
         {
           role: 'user',
@@ -422,7 +438,7 @@ export async function classifyDocument(
       // Tenta com versão ainda mais truncada (50% do limite original)
       const availableTokens = calculateAvailableTokens(
         config.maxInputTokens,
-        estimateTokensApproximate(config.systemPrompt),
+        estimateTokensApproximate(fullSystemPrompt),
         estimateTokensApproximate('Analise o documento abaixo (formato Markdown) e classifique-o conforme as instruções.\n\n---\n\n'),
         config.maxOutputTokens
       )
@@ -436,7 +452,7 @@ export async function classifyDocument(
           messages: [
             {
               role: 'system',
-              content: config.systemPrompt,
+              content: fullSystemPrompt,
             },
             {
               role: 'user',

@@ -99,7 +99,9 @@ O pipeline atual segue os seguintes passos:
 ✅ **ConcurrencyPool**: Sistema de pool de concorrência com retry logic
 ✅ **Tracking de Modelos**: Armazenamento de provider e modelo usado em cada classificação
 ✅ **Tracking de Tokens**: Armazenamento de tokens de input/output usados em cada classificação
-✅ **Dashboard de Estatísticas**: Gráficos de uso de modelos e tokens para análise de custos
+✅ **Tracking de Custos**: Cálculo automático e armazenamento de custos de classificação por modelo
+✅ **Dashboard de Estatísticas**: Gráficos de uso de modelos, tokens e custos para análise completa
+✅ **Geração Dinâmica de Prompt**: Prompt do schema gerado automaticamente a partir do schema configurado
 
 ## Documentação Adicional
 

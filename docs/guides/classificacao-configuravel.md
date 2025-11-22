@@ -39,16 +39,16 @@ Você verá a página de configuração de classificação com:
 
 **Exemplo de System Prompt**:
 ```
-Você é um especialista em classificação de documentos jurídicos. 
-Analise o documento e extraia as seguintes informações:
-- Tipo do documento (petição inicial, contestação, recurso, etc.)
-- Área jurídica (civil, trabalhista, tributário, etc.)
-- Jurisdição (BR, TRT1, TJSP, etc.)
-- Complexidade (simples, médio, complexo)
-- Tags relevantes
-- Resumo otimizado para embedding
-- Nota de qualidade (0-100)
+Você é um especialista em classificação de documentos jurídicos brasileiros.
+
+O documento está em Markdown. Se contiver "[... conteúdo truncado ...]", baseie-se nas partes visíveis.
+
+Seja preciso e objetivo.
 ```
+
+**Nota Importante**: A seção "Extraia:" com a lista de campos é gerada automaticamente a partir do schema ativo de template. Você não precisa incluir manualmente essa lista no system prompt. O sistema concatena automaticamente o prompt do schema ao final do seu system prompt durante a classificação.
+
+Você pode ver o preview do prompt do schema na própria página de configuração, logo abaixo do campo System Prompt.
 
 ### Passo 2: Selecionar Modelo
 
@@ -203,12 +203,15 @@ Se o documento for muito grande:
 
 1. O sistema carrega a configuração (ativa ou especificada)
 2. Prepara o conteúdo usando a estratégia escolhida
-3. Chama a API de IA com:
-   - System prompt da configuração
+3. Carrega o schema ativo de template
+4. Gera automaticamente o prompt do schema (seção "Extraia:")
+5. Concatena o system prompt com o prompt do schema
+6. Chama a API de IA com:
+   - System prompt completo (system prompt + prompt do schema)
    - Conteúdo preparado
    - Schema dinâmico do template
-4. Valida a resposta
-5. Retorna o resultado
+7. Valida a resposta
+8. Retorna o resultado
 
 ---
 
@@ -219,6 +222,10 @@ Se o documento for muito grande:
 - **Seja Específico**: Defina claramente o que você quer extrair
 - **Exemplos**: Inclua exemplos quando possível
 - **Formato**: Especifique o formato esperado da resposta
+- **Prompt do Schema**: A seção "Extraia:" é gerada automaticamente a partir do schema ativo
+  - Você não precisa incluir manualmente a lista de campos a extrair
+  - O sistema concatena automaticamente o prompt do schema ao final do seu system prompt
+  - Use o preview na página de configuração para ver como ficará o prompt completo
 
 ### Limites de Tokens
 

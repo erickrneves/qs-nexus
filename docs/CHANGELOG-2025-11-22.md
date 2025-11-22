@@ -103,3 +103,82 @@
 - Alertas de uso excessivo de tokens
 - Relatórios de custos mensais
 
+---
+
+## Geração Dinâmica de Prompt do Schema
+
+### Adicionado
+
+#### Geração Automática de Prompt
+- Função `generateSchemaPrompt()` que gera a seção "Extraia:" baseada no schema dinâmico
+- Suporte a todos os tipos de campos (string, number, boolean, enum, literal, array, object, union)
+- Formatação de campos aninhados recursivamente
+- Formatação de arrays de objetos com estrutura detalhada
+
+#### API de Preview
+- Endpoint `/api/template-schema/prompt-preview` para obter preview do prompt gerado
+- Suporte a schema específico via query parameter `schemaId`
+- Retorna prompt formatado e informações do schema
+
+#### Front-end
+- Componente `SchemaPromptPreview` para exibir preview do prompt
+- Preview adicionado na página de configuração de classificação
+- Atualização automática quando schema ativo muda
+- Mensagens de erro quando não há schema ativo
+
+### Modificado
+
+#### Classificação
+- `classifyDocument()` agora gera e concatena prompt do schema automaticamente
+- System prompt completo = system prompt + prompt do schema
+- Cálculo de tokens atualizado para incluir prompt completo
+- Função `prepareMarkdownContent()` atualizada para receber prompt completo
+
+#### Página de Configuração
+- Preview do prompt do schema exibido abaixo do campo System Prompt
+- Mensagem informativa sobre concatenação automática
+
+### Detalhes Técnicos
+
+#### Geração de Prompt
+- Formato: Lista numerada com campos em negrito
+- Campos obrigatórios: `**Nome**`
+- Campos opcionais: `**Nome** (opcional)`
+- Descrições incluídas quando disponíveis
+- Tipos formatados de forma legível (enum com valores, number com min/max, etc.)
+
+#### Concatenação
+- Separador: `\n\n` entre system prompt e prompt do schema
+- Compatibilidade: Se não houver schema ativo, usa apenas system prompt
+- Ordem: System prompt primeiro, depois prompt do schema
+
+#### Cálculo de Tokens
+- Prompt completo (system + schema) considerado no cálculo
+- Tokens do schema prompt incluídos na estimativa
+- Função `prepareMarkdownContent()` atualizada para considerar prompt completo
+
+### Arquivos Criados
+
+- `lib/services/schema-prompt-generator.ts`
+- `app/api/template-schema/prompt-preview/route.ts`
+- `components/settings/schema-prompt-preview.tsx`
+
+### Arquivos Modificados
+
+- `lib/services/classifier.ts`
+- `app/(dashboard)/settings/classification/page.tsx`
+
+### Benefícios
+
+1. **Consistência**: Evita inconsistências entre schema e prompt manual
+2. **Automação**: Atualização automática quando schema muda
+3. **Preview**: Visualização em tempo real do prompt gerado
+4. **Manutenção**: Não precisa atualizar prompt manualmente ao adicionar/remover campos
+5. **Clareza**: Formatação legível e consistente do prompt
+
+### Próximos Passos
+
+- Melhorias na formatação de tipos complexos
+- Opção de customizar formato do prompt gerado
+- Histórico de mudanças no prompt do schema
+

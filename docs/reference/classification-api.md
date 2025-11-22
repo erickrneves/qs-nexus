@@ -397,6 +397,51 @@ Deleta um schema.
 
 ---
 
+## Template Schema Prompt Preview API
+
+### Obter Preview do Prompt
+
+**GET** `/api/template-schema/prompt-preview`
+
+Retorna o preview do prompt gerado a partir do schema de template ativo (ou específico).
+
+**Query Parameters**:
+- `schemaId` (string, optional): UUID do schema específico (usa schema ativo se não fornecido)
+
+**Response**:
+```json
+{
+  "prompt": "Extraia:\n\n1. **docType**: Tipo do documento (tipo: enum (valores: peticao_inicial, contestacao, recurso, ...))\n2. **area**: Área jurídica (tipo: enum (valores: civil, trabalhista, ...))\n...",
+  "schemaName": "Schema Padrão",
+  "schemaId": "uuid"
+}
+```
+
+**Status Codes**:
+- `200`: Sucesso
+- `404`: Schema não encontrado ou não há schema ativo
+- `500`: Erro interno
+
+**Exemplo de Uso**:
+```typescript
+// Obter preview do schema ativo
+const response = await fetch('/api/template-schema/prompt-preview');
+const { prompt, schemaName } = await response.json();
+console.log('Prompt gerado:', prompt);
+
+// Obter preview de schema específico
+const response2 = await fetch('/api/template-schema/prompt-preview?schemaId=uuid-do-schema');
+const { prompt: prompt2 } = await response2.json();
+```
+
+**Notas**:
+- O prompt é gerado automaticamente a partir das definições de campos do schema
+- Inclui formatação legível com campos em negrito, descrições e tipos
+- Suporta campos aninhados e arrays de objetos com estrutura detalhada
+- Este prompt é automaticamente concatenado ao system prompt durante a classificação
+
+---
+
 ## Classification API
 
 ### Classificar Documento
@@ -462,6 +507,7 @@ Classifica um documento usando uma configuração de classificação.
 - Se `configId` não for fornecido, usa a configuração ativa
 - Se `schemaConfigId` não for fornecido, usa o schema ativo
 - O sistema prepara automaticamente o conteúdo (extração/truncamento) baseado nos limites de tokens
+- O prompt do schema é gerado automaticamente e concatenado ao system prompt
 - A resposta é validada contra o schema dinâmico antes de retornar
 
 ---

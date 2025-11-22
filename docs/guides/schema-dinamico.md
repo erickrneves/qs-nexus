@@ -322,7 +322,12 @@ Campo que aceita múltiplos tipos.
 }
 ```
 
-### Passo 4: Preview do Schema
+### Passo 4: Preview do Schema e Prompt
+
+Enquanto você edita os campos, o sistema exibe dois previews em tempo real:
+
+1. **Preview do Schema Zod**: Mostra como o schema será gerado
+2. **Preview do Prompt**: Mostra como a seção "Extraia:" será formatada no prompt
 
 Enquanto você edita os campos, o sistema exibe um **Preview do Schema Zod** em tempo real, mostrando como o schema será gerado.
 
@@ -412,7 +417,45 @@ Quando um template precisa ser classificado:
 2. Constrói um schema Zod dinamicamente baseado nas definições de campos
 3. Usa esse schema para validar a resposta da IA
 
-### 2. Armazenamento
+### 2. Geração de Prompt do Schema
+
+O sistema também gera automaticamente a seção "Extraia:" do system prompt baseada no schema:
+
+1. O sistema carrega o schema ativo
+2. Gera o prompt formatado usando as definições de campos:
+   - Nome do campo (em negrito)
+   - Descrição (se disponível)
+   - Tipo e configurações (enum values, min/max, etc.)
+   - Campos aninhados (com indentação)
+   - Arrays de objetos (com estrutura detalhada)
+3. Concatena o prompt gerado ao final do system prompt da configuração de classificação
+4. Usa o prompt completo durante a classificação
+
+**Exemplo de Prompt Gerado**:
+```
+Extraia:
+
+1. **docType**: Tipo do documento (tipo: enum (valores: peticao_inicial, contestacao, recurso, parecer, contrato, modelo_generico, outro))
+2. **area**: Área jurídica (tipo: enum (valores: civil, trabalhista, tributario, empresarial, consumidor, penal, administrativo, previdenciario, outro))
+3. **jurisdiction**: Jurisdição do documento (tipo: string)
+4. **complexity**: Complexidade do documento (tipo: enum (valores: simples, medio, complexo))
+5. **tags**: Tags relevantes (tipo: array de string)
+6. **summary**: Resumo de 2-3 linhas otimizado para embedding (tipo: string)
+7. **qualityScore**: Nota de qualidade baseada em clareza, estrutura e risco (tipo: number, min: 0, max: 100)
+8. **title**: Título do documento (tipo: string)
+9. **sections**: Seções do documento
+  Cada item contém:
+    1. **name**: Nome da seção (tipo: string)
+    2. **role**: Papel da seção (tipo: enum (valores: intro, fundamentacao, pedido, fatos, direito, conclusao, outro))
+```
+
+**Benefícios**:
+- ✅ Evita inconsistências entre schema e prompt manual
+- ✅ Atualização automática quando o schema muda
+- ✅ Preview em tempo real na página de configuração
+- ✅ Suporte completo a todos os tipos de campos
+
+### 3. Armazenamento
 
 Os campos classificados são armazenados no campo `metadata` JSONB da tabela `templates`:
 
@@ -430,7 +473,7 @@ Os campos classificados são armazenados no campo `metadata` JSONB da tabela `te
 }
 ```
 
-### 3. Consultas
+### 4. Consultas
 
 Para consultar templates com campos dinâmicos, use operadores JSONB:
 
