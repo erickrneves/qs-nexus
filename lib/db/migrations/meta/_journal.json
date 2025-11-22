@@ -15,6 +15,13 @@
       "when": 1763608631289,
       "tag": "0001_sloppy_wonder_man",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1763838430216,
+      "tag": "0002_chubby_big_bertha",
+      "breakpoints": true
     }
   ]
 }
