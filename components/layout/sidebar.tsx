@@ -9,6 +9,7 @@ import {
   MessageSquare,
   Scale,
   Settings,
+  HelpCircle,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -31,6 +32,7 @@ const navigation = [
   { name: 'Arquivos', href: '/files', icon: FileText },
   { name: 'Chat', href: '/chat', icon: MessageSquare },
   { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Ajuda', href: '/help', icon: HelpCircle },
 ]
 
 interface AppSidebarProps {

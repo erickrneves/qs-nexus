@@ -191,6 +191,7 @@ Guia de uso do Dashboard:
 - Reprocessamento e regeneração de chunks
 - Navegação
 - Troubleshooting específico do dashboard
+- Página de Ajuda (`/help`) com informações completas do sistema
 
 ### [gemini-integration.md](./guides/gemini-integration.md)
 

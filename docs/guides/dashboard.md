@@ -319,8 +319,12 @@ A sidebar no lado esquerdo contém:
 - **Upload**: Página de upload de arquivos
 - **Arquivos**: Lista de arquivos
 - **Chat**: Chat RAG
+- **Settings**: Configurações de classificação e schema
+- **Ajuda**: Página de ajuda e informações do sistema
 
 O link ativo é destacado visualmente.
+
+**Nota**: Acesse a página de Ajuda (`/help`) para encontrar informações detalhadas sobre todas as funcionalidades do sistema, FAQ e guias rápidos.
 
 ### Navbar
 
