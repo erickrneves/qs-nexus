@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os'
 import { existsSync, unlinkSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import textract from 'textract'
-import { structureMarkdownWithGemini } from '../services/markdown-structurer.ts'
+import { structureMarkdownWithGemini } from '../services/markdown-structurer'
 
 const require = createRequire(import.meta.url)
 const pdfParseModule = require('pdf-parse')
