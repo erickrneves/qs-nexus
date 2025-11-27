@@ -77,7 +77,7 @@ NEXTAUTH_SECRET=$(openssl rand -base64 32)
 heroku config:set \
   NEXTAUTH_SECRET="$NEXTAUTH_SECRET" \
   NEXTAUTH_URL="https://qs-nexus.herokuapp.com" \
-  OPENAI_API_KEY="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" \
+  OPENAI_API_KEY="SUA-OPENAI-API-KEY-AQUI" \
   NODE_ENV="production" \
   DB_MAX_CONNECTIONS="10" \
   -a qs-nexus

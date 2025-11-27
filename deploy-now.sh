@@ -24,9 +24,21 @@ echo -e "${NC}\n"
 echo -e "${BLUE}Deploy Automático - GitHub + Heroku${NC}\n"
 
 # Variáveis
-OPENAI_KEY="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"
+OPENAI_KEY="${OPENAI_API_KEY:-}"  # Será configurada via variável de ambiente
 APP_NAME="qs-nexus"
 GITHUB_REPO="https://github.com/erickrneves/qs-nexus.git"
+
+# Verificar se OPENAI_API_KEY está definida
+if [ -z "$OPENAI_KEY" ]; then
+    echo -e "${RED}❌ OPENAI_API_KEY não está definida!${NC}"
+    echo ""
+    read -p "Cole sua OpenAI API Key: " OPENAI_KEY
+    
+    if [ -z "$OPENAI_KEY" ]; then
+        echo -e "${RED}❌ API Key não pode ser vazia!${NC}"
+        exit 1
+    fi
+fi
 
 echo -e "${YELLOW}═══════════════════════════════════════════${NC}"
 echo -e "${BLUE}Passo 1: Verificar Heroku CLI${NC}"
