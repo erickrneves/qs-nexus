@@ -1,7 +1,11 @@
 {
-  "name": "lw-rag-system",
-  "version": "1.0.0",
-  "description": "RAG system for processing legal documents",
+  "name": "qs-nexus",
+  "version": "2.0.0",
+  "description": "QS Nexus - Plataforma Multi-tenant de Análise Fiscal e Contábil com IA",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/erickrneves/qs-nexus.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "next dev",
@@ -28,7 +32,8 @@
     "db:migrate": "tsx lib/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
     "db:migrate-template-schema": "tsx scripts/migrate-template-schema.ts",
-    "db:remove-old-columns": "tsx scripts/remove-old-template-columns.ts"
+    "db:remove-old-columns": "tsx scripts/remove-old-template-columns.ts",
+    "db:seed": "tsx lib/db/seed.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.0.0",

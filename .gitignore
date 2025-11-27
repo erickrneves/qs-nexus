@@ -1,130 +1,79 @@
-# Pastas de documentos (01. Trabalhista até 25. Contratos)
-# Ignora todas as pastas que começam com números de 01 a 25
-0[1-9]. */
-1[0-9]. */
-2[0-5]. */
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Ambiente virtual Python (mantido para referência, mas não usado mais)
-venv/
-env/
-ENV/
-.venv/
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
 
-# Arquivos Python compilados (mantido para referência)
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
+# testing
+/coverage
 
-# Distribuição / empacotamento
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+# next.js
+/.next/
+/out/
 
-# Arquivos do sistema operacional
+# production
+/build
+
+# misc
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-desktop.ini
+*.pem
 
-# IDEs e editores
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# drizzle
+drizzle
+
+# terminals (Cursor)
+terminals/
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.project
-.classpath
-.settings/
-*.sublime-project
-*.sublime-workspace
 
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# Arquivos de log
+# Logs
+logs
 *.log
-logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Arquivos temporários
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
 *.tmp
-*.temp
-*.bak
-*.backup
 
-# Arquivos de dados grandes e processados
-# Embeddings e arquivos JSONL grandes (gerados/processados)
-embeddings.jsonl
-docs_raw.jsonl
-docs_filtered.jsonl
-batch_requests.jsonl
-*.jsonl
-
-# Arquivos de dados e datasets
-# CSV e XLSX grandes/processados
-*.csv
-*.xlsx
-
-# Relatórios de processamento
-processing-status.json
-data/
-
-# Arquivos específicos grandes (descomente se não quiser versionar)
-# selecao_rag.csv
-# selecao_rag.xlsx
-# curadoria.csv
-# dataset_curado.csv
-# dataset_silver.csv
-# classification_results.jsonl
-
-# Modelos de machine learning e arquivos binários grandes
-*.pkl
-*.pickle
-*.h5
-*.hdf5
-*.model
-*.pt
-*.pth
-*.ckpt
-*.weights
-
-# Bancos de dados
+# Database
 *.db
 *.sqlite
 *.sqlite3
 
-# Arquivos de dados estruturados
-*.parquet
-*.feather
-*.arrow
-
-# Arquivos de configuração local
-.env
-.env.local
-config.local.py
-
-node_modules/
-package-lock.json
-
-# Next.js
-.next/
-out/
-
-uploads/
-.playwright-mcp/
+# Redis dump
+dump.rdb

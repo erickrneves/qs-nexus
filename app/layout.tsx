@@ -6,8 +6,8 @@ import { Toaster } from 'react-hot-toast'
 import { ErrorBoundary } from '@/components/error-boundary'
 
 export const metadata: Metadata = {
-  title: 'LegalWise RAG Dashboard',
-  description: 'Dashboard para gerenciar e visualizar o sistema RAG de documentos jurídicos',
+  title: 'QS Nexus | Inteligência de Dados',
+  description: 'Sistema de inteligência de dados para consultoria tributária e empresarial - QS Consultoria',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

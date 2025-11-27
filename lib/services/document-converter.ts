@@ -345,10 +345,53 @@ async function convertPdfToMarkdown(filePath: string): Promise<ConversionResult>
 }
 
 /**
+ * Detecta e converte encoding do arquivo para UTF-8
+ * Remove bytes nulos e caracteres inválidos
+ */
+function sanitizeTextContent(buffer: Buffer): string {
+  // Remove bytes nulos (0x00) que são inválidos em UTF-8
+  const cleanBuffer = Buffer.from(
+    buffer.filter(byte => byte !== 0x00)
+  )
+  
+  // Tenta diferentes encodings
+  const encodings: BufferEncoding[] = ['utf-8', 'latin1', 'utf16le']
+  
+  for (const encoding of encodings) {
+    try {
+      let content = cleanBuffer.toString(encoding)
+      
+      // Remove caracteres de controle inválidos (exceto newline, tab, carriage return)
+      content = content.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+      
+      // Normaliza quebras de linha (CRLF -> LF)
+      content = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+      
+      // Se conseguiu decodificar sem caracteres estranhos, retorna
+      if (!content.includes('\uFFFD')) {
+        return content
+      }
+    } catch {
+      continue
+    }
+  }
+  
+  // Fallback: usa latin1 que aceita qualquer byte
+  let content = cleanBuffer.toString('latin1')
+  content = content.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+  content = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  return content
+}
+
+/**
  * Converte TXT para Markdown
  */
 async function convertTxtToMarkdown(filePath: string): Promise<ConversionResult> {
-  const content = readFileSync(filePath, 'utf-8')
+  // Lê o arquivo como buffer para poder tratar encoding
+  const buffer = readFileSync(filePath)
+  
+  // Sanitiza e converte para string UTF-8
+  const content = sanitizeTextContent(buffer)
   
   // Texto já é praticamente markdown, apenas limpa e formata
   const lines = content.split('\n')

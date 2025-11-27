@@ -66,6 +66,11 @@ export const modelProviderEnum = pgEnum('model_provider', ['openai', 'google'])
 
 export const documentFiles = pgTable('document_files', {
   id: uuid('id').primaryKey().defaultRandom(),
+  
+  // Multi-tenant
+  organizationId: uuid('organization_id').notNull(),
+  createdBy: uuid('created_by'),
+  
   filePath: text('file_path').notNull().unique(),
   fileName: text('file_name').notNull(),
   fileHash: text('file_hash').notNull(),
@@ -80,6 +85,10 @@ export const documentFiles = pgTable('document_files', {
 // Classification configs table
 export const classificationConfigs = pgTable('classification_configs', {
   id: uuid('id').primaryKey().defaultRandom(),
+  
+  // Multi-tenant (null = global config)
+  organizationId: uuid('organization_id'),
+  
   name: text('name').notNull(),
   systemPrompt: text('system_prompt').notNull(),
   modelProvider: modelProviderEnum('model_provider').notNull(),
@@ -95,6 +104,10 @@ export const classificationConfigs = pgTable('classification_configs', {
 // Template schema configs table
 export const templateSchemaConfigs = pgTable('template_schema_configs', {
   id: uuid('id').primaryKey().defaultRandom(),
+  
+  // Multi-tenant (null = global schema)
+  organizationId: uuid('organization_id'),
+  
   name: text('name').notNull(),
   fields: jsonb('fields').notNull(), // Array of field definitions
   isActive: boolean('is_active').default(false),
@@ -105,6 +118,11 @@ export const templateSchemaConfigs = pgTable('template_schema_configs', {
 // Refactored templates table - using JSONB metadata instead of fixed columns
 export const templates = pgTable('templates', {
   id: uuid('id').primaryKey().defaultRandom(),
+  
+  // Multi-tenant
+  organizationId: uuid('organization_id').notNull(),
+  createdBy: uuid('created_by'),
+  
   documentFileId: uuid('document_file_id')
     .notNull()
     .references(() => documentFiles.id),

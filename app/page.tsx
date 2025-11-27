@@ -1,119 +1,137 @@
-import { redirect } from 'next/navigation'
-import { auth } from '@/lib/auth/config'
+'use client'
+
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 import Link from 'next/link'
+import { Hexagon, ArrowRight, Database, MessageSquare, Shield, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Scale, ArrowRight, Sparkles, Shield, Zap, FileText } from 'lucide-react'
 
-export default async function Home() {
-  const session = await auth()
+export default function Home() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
 
-  // Se já está autenticado, redireciona para o dashboard
-  if (session) {
-    redirect('/dashboard')
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.push('/dashboard')
+    }
+  }, [status, router])
+
+  if (status === 'loading') {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[var(--qs-bg)]">
+        <div className="animate-pulse text-[var(--qs-text-muted)]">Carregando...</div>
+      </div>
+    )
   }
 
-  // Se não está autenticado, mostra landing page moderna
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/30">
+    <main className="flex flex-col min-h-screen bg-[var(--qs-bg)] overflow-hidden">
       {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-gray-900/[0.02] bg-[size:20px_20px]" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-32">
-          <div className="text-center">
-            {/* Logo */}
-            <div className="flex items-center justify-center gap-3 mb-8">
-              <div className="p-4 bg-primary rounded-2xl shadow-lg shadow-primary/20">
-                <Scale className="h-10 w-10 text-primary-foreground" />
-              </div>
-              <h1 className="text-5xl md:text-6xl font-bold text-foreground">
-                LegalWise
+      <div className="flex flex-col items-center justify-center flex-1 px-6 py-16 sm:py-24 relative">
+        {/* Subtle background glow */}
+        <div 
+          className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full opacity-30 blur-3xl pointer-events-none"
+          style={{ 
+            background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(20,184,166,0.15) 50%, rgba(6,182,212,0.1) 100%)' 
+          }}
+        />
+        
+        {/* Logo/Icon Premium */}
+        <div className="relative mb-8">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center justify-center w-16 h-16 rounded-2xl gradient-icon shadow-[var(--qs-shadow-icon)] animate-scaleIn">
+              <Hexagon className="w-8 h-8 text-white" strokeWidth={1.5} />
+            </div>
+            <div className="flex flex-col">
+              <h1 className="text-4xl sm:text-5xl font-bold text-[var(--qs-text)] tracking-tight">
+                QS <span className="gradient-icon-text">Nexus</span>
               </h1>
-            </div>
-
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
-              RAG Dashboard
-            </h2>
-            <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto">
-              Sistema inteligente de gerenciamento de documentos jurídicos com busca semântica e
-              análise avançada
-            </p>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-              <Link href="/register">
-                <Button
-                  size="lg"
-                  className="h-14 px-8 text-lg shadow-xl hover:shadow-2xl transition-all duration-200"
-                >
-                  Começar agora
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <Link href="/login">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="h-14 px-8 text-lg border-2 shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                  Fazer login
-                </Button>
-              </Link>
-            </div>
-
-            {/* Features Grid */}
-            <div className="grid md:grid-cols-3 gap-8 mt-24 max-w-5xl mx-auto">
-              <div className="bg-card/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-200 border border-border">
-                <div className="p-3 bg-primary rounded-xl w-fit mb-4">
-                  <Sparkles className="h-6 w-6 text-primary-foreground" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-2">IA Avançada</h3>
-                <p className="text-muted-foreground">
-                  Busca semântica e análise inteligente de documentos jurídicos
-                </p>
-              </div>
-
-              <div className="bg-card/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-200 border border-border">
-                <div className="p-3 bg-primary/90 rounded-xl w-fit mb-4">
-                  <Shield className="h-6 w-6 text-primary-foreground" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-2">Seguro</h3>
-                <p className="text-muted-foreground">
-                  Autenticação robusta e proteção de dados sensíveis
-                </p>
-              </div>
-
-              <div className="bg-card/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-200 border border-border">
-                <div className="p-3 bg-primary/80 rounded-xl w-fit mb-4">
-                  <Zap className="h-6 w-6 text-primary-foreground" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-2">Rápido</h3>
-                <p className="text-muted-foreground">
-                  Processamento eficiente e interface responsiva
-                </p>
-              </div>
             </div>
           </div>
         </div>
 
-        {/* Decorative elements */}
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/20 rounded-full blur-3xl" />
+        {/* Title and Description */}
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <h2 className="text-2xl sm:text-3xl font-semibold text-[var(--qs-text)] mb-4">
+            Inteligência de Dados
+          </h2>
+          <p className="text-lg text-[var(--qs-text-muted)] leading-relaxed">
+            Sistema de análise inteligente para consultoria tributária e empresarial. 
+            Combine SQL e busca semântica com agentes de IA.
+          </p>
+        </div>
+
+        {/* CTA Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-16">
+          <Link href="/login">
+            <Button size="xl" className="min-w-[180px] group">
+              Começar agora
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </Button>
+          </Link>
+          <Link href="/login">
+            <Button variant="outline" size="xl" className="min-w-[180px]">
+              Fazer login
+            </Button>
+          </Link>
+        </div>
+
+        {/* Features Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-5xl">
+          {[
+            { 
+              icon: Database, 
+              title: 'SQL + RAG', 
+              desc: 'Consultas híbridas inteligentes',
+              color: 'var(--qs-green)'
+            },
+            { 
+              icon: MessageSquare, 
+              title: 'Agentes IA', 
+              desc: 'Análise conversacional avançada',
+              color: 'var(--qs-teal)'
+            },
+            { 
+              icon: Shield, 
+              title: 'Multi-tenant', 
+              desc: 'Isolamento e segurança de dados',
+              color: 'var(--qs-blue-light)'
+            },
+            { 
+              icon: Zap, 
+              title: 'SPED Nativo', 
+              desc: 'ECD, ECF, EFD processados',
+              color: 'var(--qs-brand)'
+            },
+          ].map((feature, i) => (
+            <div 
+              key={i} 
+              className="group relative bg-[var(--qs-card)] border border-[var(--qs-border)] rounded-2xl p-6 shadow-[var(--qs-shadow-sm)] hover:shadow-[var(--qs-shadow)] hover:border-[var(--qs-border-hover)] transition-all duration-300"
+            >
+              <div 
+                className="flex items-center justify-center w-12 h-12 rounded-xl mb-4 transition-all duration-300 group-hover:scale-105"
+                style={{ 
+                  background: `linear-gradient(135deg, ${feature.color}15 0%, ${feature.color}25 100%)`,
+                  boxShadow: `0 4px 12px ${feature.color}15`
+                }}
+              >
+                <feature.icon 
+                  className="w-6 h-6" 
+                  style={{ color: feature.color }} 
+                />
+              </div>
+              <h3 className="font-semibold text-[var(--qs-text)] mb-1">{feature.title}</h3>
+              <p className="text-sm text-[var(--qs-text-muted)]">{feature.desc}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-card/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="flex items-center gap-2 mb-4 md:mb-0">
-              <FileText className="h-5 w-5 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">LegalWise RAG Dashboard</p>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              © {new Date().getFullYear()} LegalWise. Todos os direitos reservados.
-            </p>
-          </div>
-        </div>
+      <footer className="py-6 text-center text-sm text-[var(--qs-text-tertiary)] border-t border-[var(--qs-border)]">
+        © {new Date().getFullYear()} QS Consultoria • Todos os direitos reservados
       </footer>
-    </div>
+    </main>
   )
 }

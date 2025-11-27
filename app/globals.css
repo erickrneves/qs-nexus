@@ -1,235 +1,455 @@
 @import "tailwindcss";
 
-/* Tailwind v4 Theme Configuration - CSS-First Approach */
-/* stylelint-disable-next-line at-rule-no-unknown */
-@theme {
-  /* Amber Minima Theme - Inspirado no 21st Magic */
-  /* Usando variáveis CSS que mudam com dark mode */
+/* ============================================
+   QS Nexus - Design System Premium
+   Paleta: Areia Quente + Gradientes Sofisticados
+   ============================================ */
+
+:root {
+  /* ============================================
+     BACKGROUNDS - Tons Areia Acolhedores
+     ============================================ */
+  --qs-bg: #faf8f5;
+  --qs-card: #ffffff;
+  --qs-muted: #f3f1ec;
+  --qs-surface: #f7f5f0;
+  --qs-input-bg: #ffffff;
+
+  /* ============================================
+     TEXTOS - Hierarquia Clara
+     ============================================ */
+  --qs-text: #1e293b;
+  --qs-text-muted: #64748b;
+  --qs-text-secondary: #64748b;
+  --qs-text-tertiary: #94a3b8;
+  --qs-placeholder: #9ca3af;
+
+  /* ============================================
+     BORDAS - Areia Refinado
+     ============================================ */
+  --qs-border: #e7e4dd;
+  --qs-border-hover: #d6d2c8;
+
+  /* ============================================
+     PALETA PREMIUM - Cores Sofisticadas
+     ============================================ */
   
-  /* Core Colors */
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
+  /* Azul Suave (não caneta) */
+  --qs-blue: #3b82f6;
+  --qs-blue-light: #60a5fa;
+  --qs-blue-lighter: #93c5fd;
+  --qs-blue-soft: #dbeafe;
   
-  /* Primary Colors */
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
+  /* Verde Esmeralda/Teal */
+  --qs-green: #10b981;
+  --qs-green-light: #34d399;
+  --qs-green-dark: #059669;
+  --qs-teal: #14b8a6;
+  --qs-teal-light: #2dd4bf;
   
-  /* Secondary Colors */
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  /* Dourado Brand */
+  --qs-brand: #D4AF37;
+  --qs-brand-hover: #E0B94A;
+  --qs-brand-light: #f5e6b8;
   
-  /* Muted Colors */
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
+  /* Cor primária - agora é o gradiente */
+  --qs-primary: #10b981;
+  --qs-primary-hover: #059669;
+  --qs-primary-light: #d1fae5;
+
+  /* ============================================
+     GRADIENTES SOFISTICADOS
+     ============================================ */
   
-  /* Accent Colors */
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
+  /* Gradiente Principal - Verde para Azul Suave */
+  --gradient-primary: linear-gradient(135deg, #10b981 0%, #14b8a6 50%, #06b6d4 100%);
+  --gradient-primary-hover: linear-gradient(135deg, #059669 0%, #0d9488 50%, #0891b2 100%);
   
-  /* Destructive Colors */
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  /* Gradiente Brand - Dourado Sofisticado */
+  --gradient-brand: linear-gradient(135deg, #D4AF37 0%, #E8C547 50%, #F0D95F 100%);
   
-  /* Card Colors */
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
+  /* Gradiente Accent - Teal para Azul */
+  --gradient-accent: linear-gradient(135deg, #14b8a6 0%, #06b6d4 50%, #0ea5e9 100%);
   
-  /* Popover Colors */
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
+  /* Gradiente Ícone Sistema - Premium */
+  --gradient-icon: linear-gradient(135deg, #10b981 0%, #14b8a6 35%, #06b6d4 65%, #3b82f6 100%);
+  --gradient-icon-glow: linear-gradient(135deg, rgba(16,185,129,0.3) 0%, rgba(20,184,166,0.3) 35%, rgba(6,182,212,0.3) 65%, rgba(59,130,246,0.3) 100%);
   
-  /* Border & Input */
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
+  /* Gradiente Sidebar Active */
+  --gradient-sidebar: linear-gradient(135deg, #10b981 0%, #0d9488 100%);
+
+  /* ============================================
+     SOMBRAS PREMIUM
+     ============================================ */
+  --qs-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --qs-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --qs-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --qs-shadow-md: 0 8px 20px rgba(0, 0, 0, 0.10);
+  --qs-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
   
-  /* Sidebar Colors */
-  --color-sidebar: hsl(var(--sidebar));
-  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
-  --color-sidebar-primary: hsl(var(--sidebar-primary));
-  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
-  --color-sidebar-accent: hsl(var(--sidebar-accent));
-  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
-  --color-sidebar-border: hsl(var(--sidebar-border));
-  --color-sidebar-ring: hsl(var(--sidebar-ring));
+  /* Sombras com cor */
+  --qs-shadow-primary: 0 4px 20px rgba(16, 185, 129, 0.25);
+  --qs-shadow-accent: 0 4px 20px rgba(20, 184, 166, 0.25);
+  --qs-shadow-brand: 0 4px 20px rgba(212, 175, 55, 0.3);
+  --qs-shadow-icon: 0 8px 32px rgba(16, 185, 129, 0.3), 0 4px 16px rgba(6, 182, 212, 0.2);
+
+  /* ============================================
+     ESTADOS - Feedback Visual
+     ============================================ */
+  --qs-success: #10b981;
+  --qs-success-light: #d1fae5;
+  --qs-warning: #f59e0b;
+  --qs-warning-light: #fef3c7;
+  --qs-error: #ef4444;
+  --qs-error-light: #fee2e2;
+  --qs-info: #0ea5e9;
+  --qs-info-light: #e0f2fe;
+
+  /* ============================================
+     BORDER RADIUS
+     ============================================ */
+  --qs-radius-sm: 6px;
+  --qs-radius: 10px;
+  --qs-radius-md: 12px;
+  --qs-radius-lg: 16px;
+  --qs-radius-xl: 20px;
+  --qs-radius-full: 9999px;
+
+  /* ============================================
+     GLASSMORPHISM
+     ============================================ */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-bg-strong: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --glass-blur: 12px;
   
-  /* Chart Colors - Amber Palette */
-  --color-chart-1: hsl(var(--chart-1));
-  --color-chart-2: hsl(var(--chart-2));
-  --color-chart-3: hsl(var(--chart-3));
-  --color-chart-4: hsl(var(--chart-4));
-  --color-chart-5: hsl(var(--chart-5));
+  /* Glows */
+  --glow-primary: 0 0 24px rgba(16, 185, 129, 0.3);
+  --glow-accent: 0 0 24px rgba(20, 184, 166, 0.3);
+  --glow-brand: 0 0 24px rgba(212, 175, 55, 0.35);
+
+  /* Tailwind compat */
+  --background: 40 23% 97%;
+  --foreground: 215 25% 17%;
+  --card: 0 0% 100%;
+  --card-foreground: 215 25% 17%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 215 25% 17%;
+  --primary: 160 84% 39%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 40 18% 93%;
+  --secondary-foreground: 215 16% 47%;
+  --muted: 40 18% 93%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 174 72% 40%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 40 18% 89%;
+  --input: 40 18% 89%;
+  --ring: 160 84% 39%;
+  --radius: 10px;
   
-  /* Border Radius */
-  --radius: var(--radius);
+  --sidebar: 40 23% 96%;
+  --sidebar-foreground: 215 25% 17%;
+  --sidebar-primary: 160 84% 39%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 40 18% 90%;
+  --sidebar-accent-foreground: 215 25% 17%;
+  --sidebar-border: 40 18% 89%;
+  --sidebar-ring: 160 84% 39%;
 }
 
-@layer base {
-  :root {
-    /* CSS Variables for direct use in components */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 15%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 15%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 15%;
-    --primary: 38 96% 50%;
-    --primary-foreground: 0 0% 0%;
-    --secondary: 210 20% 96%;
-    --secondary-foreground: 215 13% 34%;
-    --muted: 210 20% 98%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 48 100% 97%;
-    --accent-foreground: 30 82% 31%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 210 20% 91%;
-    --input: 210 20% 91%;
-    --ring: 38 96% 50%;
-    --radius: 0.375rem;
-    
-    --sidebar: 210 20% 98%;
-    --sidebar-foreground: 0 0% 15%;
-    --sidebar-primary: 38 96% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 48 100% 97%;
-    --sidebar-accent-foreground: 30 82% 31%;
-    --sidebar-border: 210 20% 91%;
-    --sidebar-ring: 38 96% 50%;
-    
-    --chart-1: 38 96% 50%;
-    --chart-2: 30 96% 45%;
-    --chart-3: 30 82% 31%;
-    --chart-4: 30 82% 31%;
-    --chart-5: 30 70% 25%;
-  }
+/* ============================================
+   DARK MODE
+   ============================================ */
+.dark {
+  --qs-bg: #0f0f10;
+  --qs-card: #1a1a1c;
+  --qs-muted: #242426;
+  --qs-surface: #161618;
+  --qs-input-bg: #1a1a1c;
 
-  .dark {
-    /* Dark Mode: Amber Minima Theme */
-    --background: 0 0% 9%;
-    --foreground: 0 0% 90%;
-    --card: 0 0% 15%;
-    --card-foreground: 0 0% 90%;
-    --popover: 0 0% 15%;
-    --popover-foreground: 0 0% 90%;
-    --primary: 38 96% 50%;
-    --primary-foreground: 0 0% 0%;
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 90%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 64%;
-    --accent: 30 82% 31%;
-    --accent-foreground: 48 96% 77%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 25%;
-    --input: 0 0% 25%;
-    --ring: 38 96% 50%;
-    
-    --sidebar: 0 0% 6%;
-    --sidebar-foreground: 0 0% 90%;
-    --sidebar-primary: 38 96% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 30 82% 31%;
-    --sidebar-accent-foreground: 48 96% 77%;
-    --sidebar-border: 0 0% 25%;
-    --sidebar-ring: 38 96% 50%;
-    
-    --chart-1: 48 96% 77%;
-    --chart-2: 30 96% 45%;
-    --chart-3: 30 82% 31%;
-    --chart-4: 30 82% 31%;
-    --chart-5: 30 82% 31%;
-  }
+  --qs-text: #f1f5f9;
+  --qs-text-muted: #94a3b8;
+  --qs-text-secondary: #94a3b8;
+  --qs-text-tertiary: #64748b;
+  --qs-placeholder: #64748b;
 
-  * {
-    border-color: hsl(var(--border));
-    outline-color: hsl(var(--ring) / 0.5);
-  }
+  --qs-border: #2a2a2c;
+  --qs-border-hover: #3a3a3c;
+
+  /* Cores mais vibrantes no dark */
+  --qs-blue: #60a5fa;
+  --qs-blue-light: #93c5fd;
+  --qs-green: #34d399;
+  --qs-green-light: #6ee7b7;
+  --qs-teal: #2dd4bf;
+  --qs-brand: #e4bf47;
+  --qs-brand-light: rgba(228, 191, 71, 0.2);
   
-  body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-    font-feature-settings: "rlig" 1, "calt" 1;
-    transition: background-color 0.3s ease, color 0.3s ease;
-  }
+  --qs-primary: #34d399;
+  --qs-primary-hover: #6ee7b7;
+  --qs-primary-light: rgba(52, 211, 153, 0.15);
 
+  /* Gradientes dark */
+  --gradient-primary: linear-gradient(135deg, #34d399 0%, #2dd4bf 50%, #22d3ee 100%);
+  --gradient-primary-hover: linear-gradient(135deg, #6ee7b7 0%, #5eead4 50%, #67e8f9 100%);
+  --gradient-icon: linear-gradient(135deg, #34d399 0%, #2dd4bf 35%, #22d3ee 65%, #60a5fa 100%);
+  --gradient-sidebar: linear-gradient(135deg, #34d399 0%, #2dd4bf 100%);
 
-  /* Melhorias visuais para cards */
-  [class*="card"] {
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  }
+  --qs-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --qs-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.35);
+  --qs-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --qs-shadow-md: 0 8px 20px rgba(0, 0, 0, 0.45);
+  --qs-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --qs-shadow-primary: 0 4px 20px rgba(52, 211, 153, 0.3);
+  --qs-shadow-icon: 0 8px 32px rgba(52, 211, 153, 0.35), 0 4px 16px rgba(34, 211, 238, 0.25);
 
-  /* Sombras refinadas */
-  .shadow-sm {
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  }
+  --qs-success-light: rgba(52, 211, 153, 0.15);
+  --qs-warning-light: rgba(245, 158, 11, 0.15);
+  --qs-error-light: rgba(239, 68, 68, 0.15);
+  --qs-info-light: rgba(14, 165, 233, 0.15);
 
-  .shadow {
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  }
+  --glass-bg: rgba(26, 26, 28, 0.8);
+  --glass-bg-strong: rgba(26, 26, 28, 0.95);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  
+  --glow-primary: 0 0 28px rgba(52, 211, 153, 0.4);
+  --glow-accent: 0 0 28px rgba(45, 212, 191, 0.4);
+  --glow-brand: 0 0 28px rgba(228, 191, 71, 0.4);
 
-  .shadow-md {
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  }
-
-  .shadow-lg {
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  }
-
-  /* Scrollbar personalizada */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: hsl(var(--muted));
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.3);
-    border-radius: 4px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
-  }
+  /* Tailwind compat dark */
+  --background: 0 0% 6%;
+  --foreground: 210 40% 96%;
+  --card: 0 0% 10%;
+  --card-foreground: 210 40% 96%;
+  --popover: 0 0% 10%;
+  --popover-foreground: 210 40% 96%;
+  --primary: 160 72% 52%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 14%;
+  --secondary-foreground: 210 40% 70%;
+  --muted: 0 0% 14%;
+  --muted-foreground: 215 16% 60%;
+  --accent: 174 75% 50%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 16%;
+  --input: 0 0% 16%;
+  --ring: 160 72% 52%;
+  
+  --sidebar: 0 0% 5%;
+  --sidebar-foreground: 210 40% 96%;
+  --sidebar-primary: 160 72% 52%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 0 0% 12%;
+  --sidebar-accent-foreground: 210 40% 96%;
+  --sidebar-border: 0 0% 16%;
+  --sidebar-ring: 160 72% 52%;
 }
 
-@layer utilities {
-  .bg-grid-white\/\[0\.05\] {
-    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-  }
-
-  .bg-grid-gray-900\/\[0\.02\] {
-    background-image: linear-gradient(to right, rgba(17, 24, 39, 0.02) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(17, 24, 39, 0.02) 1px, transparent 1px);
-  }
+/* ============================================
+   BASE STYLES
+   ============================================ */
+html {
+  scroll-behavior: smooth;
 }
 
-/* Toast notifications styling */
+body {
+  background-color: var(--qs-bg);
+  color: var(--qs-text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+/* ============================================
+   GRADIENT ICON (Logo do Sistema)
+   ============================================ */
+.gradient-icon {
+  background: var(--gradient-icon);
+  box-shadow: var(--qs-shadow-icon);
+}
+
+.gradient-icon-text {
+  background: var(--gradient-icon);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================
+   GLASS COMPONENTS
+   ============================================ */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-strong {
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+/* ============================================
+   SCROLLBAR - Minimalista
+   ============================================ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--qs-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--qs-border-hover);
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-fadeIn { animation: fadeIn 0.2s ease-out; }
+.animate-slideUp { animation: slideUp 0.25s ease-out; }
+.animate-slideDown { animation: slideDown 0.25s ease-out; }
+.animate-scaleIn { animation: scaleIn 0.2s ease-out; }
+.animate-shimmer { 
+  animation: shimmer 2s infinite;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  background-size: 200% 100%;
+}
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+/* ============================================
+   UTILITIES
+   ============================================ */
+.text-gradient-brand {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-primary {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Number input - hide arrows */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* ============================================
+   TABS WITH GRADIENT
+   ============================================ */
+[data-state="active"][data-gradient="true"] {
+  background: var(--gradient-primary) !important;
+  box-shadow: var(--qs-shadow-primary) !important;
+}
+
+/* ============================================
+   BUTTON GRADIENTS
+   ============================================ */
+.btn-gradient-primary {
+  background: var(--gradient-primary);
+  box-shadow: var(--qs-shadow-primary);
+}
+
+.btn-gradient-primary:hover {
+  box-shadow: var(--qs-shadow-md), var(--glow-primary);
+  filter: brightness(1.05);
+}
+
+.btn-gradient-brand {
+  background: var(--gradient-brand);
+  box-shadow: var(--qs-shadow-brand);
+}
+
+.btn-gradient-brand:hover {
+  box-shadow: var(--qs-shadow-md), var(--glow-brand);
+  filter: brightness(1.03);
+}
+
+.btn-gradient-accent {
+  background: var(--gradient-accent);
+  box-shadow: var(--qs-shadow-accent);
+}
+
+.btn-gradient-accent:hover {
+  box-shadow: var(--qs-shadow-md), var(--glow-accent);
+  filter: brightness(1.05);
+}
+
+/* ============================================
+   TOAST NOTIFICATIONS
+   ============================================ */
 [data-sonner-toast],
-[data-sonner-toast] > div,
-div[role="status"] {
-  background: hsl(var(--card)) !important;
-  color: hsl(var(--card-foreground)) !important;
-  border: 1px solid hsl(var(--border)) !important;
-  backdrop-filter: none !important;
-  opacity: 1 !important;
-}
-
-/* React Hot Toast specific styles */
 div[data-hot-toast] {
-  background: hsl(var(--card)) !important;
-  color: hsl(var(--card-foreground)) !important;
-  border: 1px solid hsl(var(--border)) !important;
-  backdrop-filter: none !important;
-  opacity: 1 !important;
-}
-
-div[data-hot-toast] > div {
-  background: transparent !important;
-  color: hsl(var(--card-foreground)) !important;
+  background: var(--qs-card) !important;
+  color: var(--qs-text) !important;
+  border: 1px solid var(--qs-border) !important;
+  border-radius: var(--qs-radius) !important;
+  box-shadow: var(--qs-shadow-md) !important;
 }

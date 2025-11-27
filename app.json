@@ -1,0 +1,72 @@
+{
+  "name": "qs-nexus",
+  "description": "QS Nexus - Plataforma Multi-tenant de Análise Fiscal e Contábil com IA",
+  "repository": "https://github.com/erickrneves/qs-nexus",
+  "logo": "https://raw.githubusercontent.com/erickrneves/qs-nexus/main/public/logo.png",
+  "keywords": [
+    "nextjs",
+    "ai",
+    "rag",
+    "fiscal",
+    "contabil",
+    "sped",
+    "langchain",
+    "multi-tenant"
+  ],
+  "stack": "container",
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql:mini",
+      "as": "DATABASE"
+    },
+    {
+      "plan": "heroku-redis:mini",
+      "as": "REDIS"
+    }
+  ],
+  "buildpacks": [],
+  "env": {
+    "DATABASE_URL": {
+      "description": "PostgreSQL database URL (auto-configured by Heroku Postgres addon)",
+      "required": false
+    },
+    "REDIS_URL": {
+      "description": "Redis URL for job queue (auto-configured by Heroku Redis addon)",
+      "required": false
+    },
+    "NEXTAUTH_URL": {
+      "description": "URL da aplicação (ex: https://qs-nexus.herokuapp.com)",
+      "required": true
+    },
+    "NEXTAUTH_SECRET": {
+      "description": "Secret para NextAuth (gere com: openssl rand -base64 32)",
+      "required": true,
+      "generator": "secret"
+    },
+    "OPENAI_API_KEY": {
+      "description": "OpenAI API Key para GPT-4 e embeddings",
+      "required": true
+    },
+    "GOOGLE_AI_API_KEY": {
+      "description": "Google AI API Key para Gemini (opcional, fallback)",
+      "required": false
+    },
+    "NODE_ENV": {
+      "description": "Node environment",
+      "value": "production"
+    },
+    "DB_MAX_CONNECTIONS": {
+      "description": "Máximo de conexões PostgreSQL",
+      "value": "10"
+    }
+  },
+  "scripts": {
+    "postdeploy": "npm run db:seed"
+  }
+}

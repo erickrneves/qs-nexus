@@ -1,13 +1,61 @@
-# LegalWise RAG System
+# QS Nexus
 
-Sistema de RAG (Retrieval-Augmented Generation) para processamento de documentos jurídicos DOCX, conversão para Markdown, classificação com metadados estruturados e geração de embeddings.
+**Plataforma Multi-tenant de Análise Fiscal e Contábil com IA**
+
+QS Nexus é um sistema RAG (Retrieval-Augmented Generation) multi-tenant com orquestração de agentes LangChain, especializado em análise de documentos SPED, fiscais e contábeis para consultoria tributária e empresarial.
+
+[![Deploy no Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/erickrneves/qs-nexus)
+
+## 🚀 Deploy Rápido
+
+- **Heroku**: Ver [`DEPLOY.md`](./DEPLOY.md) para instruções completas
+- **Docker**: `docker-compose up`
+- **Local**: `npm install && npm run dev`
+
+## Características
+
+- 🔄 **Ingestão Multi-formato**: Suporte a SPED, CSV, TXT, PDF e DOCX
+- 📊 **Normalização SQL**: Dados estruturados para queries analíticas
+- 🔍 **Busca Vetorial**: Embeddings para busca semântica
+- 🤖 **Agente Inteligente**: OpenAI Assistants com acesso a SQL e RAG
+- 📈 **Dashboard Analítico**: Visualização de dados contábeis
+- 🔐 **Autenticação Segura**: Stack Auth (Neon Auth)
+
+## Arquitetura
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                       QS NEXUS                               │
+├─────────────────────────────────────────────────────────────┤
+│  INGESTÃO                                                    │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐                   │
+│  │  SPED    │  │   CSV    │  │ PDF/TXT  │                   │
+│  │ Parser   │  │  Parser  │  │ Parser   │                   │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘                   │
+│       └────────────┬────────────┘                           │
+│                    ▼                                         │
+│  ┌─────────────────────────────────────────────────┐        │
+│  │            Normalização de Dados                 │        │
+│  └─────────────────────────────────────────────────┘        │
+├─────────────────────────────────────────────────────────────┤
+│  ARMAZENAMENTO (NeonDB)                                      │
+│  ┌────────────────────┐  ┌────────────────────┐             │
+│  │   SQL Normalizado  │  │   Vector Storage   │             │
+│  └────────────────────┘  └────────────────────┘             │
+├─────────────────────────────────────────────────────────────┤
+│  ORQUESTRAÇÃO (OpenAI Assistants)                           │
+│  ┌─────────────────────────────────────────────────┐        │
+│  │  Agente com Tools: sql_query, vector_search     │        │
+│  └─────────────────────────────────────────────────┘        │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ## Pré-requisitos
 
 - Node.js 18+
-- PostgreSQL com extensão pgvector (Neon recomendado)
+- PostgreSQL com extensão pgvector (NeonDB recomendado)
 - Conta OpenAI com API key
-- (Opcional) Conta Google AI com API key para estruturação melhorada de PDF e .doc
+- Stack Auth configurado
 
 ## Instalação
 
@@ -19,46 +67,37 @@ npm install
 
 1. Copie `.env.local.example` para `.env.local`
 2. Configure as variáveis de ambiente:
-   - `DATABASE_URL`: String de conexão do Neon
+   - `DATABASE_URL`: String de conexão do NeonDB
    - `OPENAI_API_KEY`: Chave da API OpenAI
-   - `GOOGLE_GENERATIVE_AI_API_KEY`: (Opcional) Chave da API Google para estruturação melhorada de PDF e .doc. Obtenha em [Google AI Studio](https://ai.google.dev/)
-   - `DOCX_SOURCE_DIR`: Caminho relativo onde estão os arquivos DOCX (padrão: `./list-docx`)
+   - `OPENAI_ASSISTANT_ID`: ID do Assistant configurado
+   - `STACK_*`: Credenciais do Stack Auth
 
 ## Setup do Banco de Dados
 
-Para instruções detalhadas de setup, consulte [docs/SETUP.md](./docs/SETUP.md).
+### 1. Habilitar pgvector no Neon:
 
-### Resumo Rápido:
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+```
 
-1. **Habilitar pgvector no Neon:**
+### 2. Executar Migrations:
 
-   ```sql
-   CREATE EXTENSION IF NOT EXISTS vector;
-   ```
-
-2. **Executar Migrations:**
-   ```bash
-   npm run db:migrate
-   ```
-
-Isso criará as tabelas:
-
-- `document_files`: Tracking de arquivos processados
-- `templates`: Documentos processados (TemplateDocument)
-- `template_chunks`: Chunks com embeddings para RAG
+```bash
+npm run db:migrate
+```
 
 ## Uso
 
-### Pipeline Completo
+### Pipeline de Ingestão
 
 ```bash
-# 1. Processar documentos (DOCX → Markdown)
+# 1. Processar documentos (SPED/CSV/PDF → normalização)
 npm run rag:process
 
-# 2. Filtrar documentos (validação de tamanho)
+# 2. Filtrar documentos
 npm run rag:filter
 
-# 3. Classificar documentos (gerar TemplateDocument)
+# 3. Classificar documentos
 npm run rag:classify
 
 # 4. Gerar chunks
@@ -71,89 +110,76 @@ npm run rag:embed
 npm run rag:store
 ```
 
+### Desenvolvimento
+
+```bash
+npm run dev      # Inicia servidor de desenvolvimento
+npm run build    # Build para produção
+npm run start    # Inicia servidor de produção
+```
+
 ### Utilitários
 
 ```bash
-# Gerar relatório de status
-npm run rag:status
-
-# Reprocessar um arquivo específico
-npm run rag:reprocess "./list-docx/01. Trabalhista/documento.docx"
-
-# Investigar arquivos em processing
-npm run rag:investigate
-
-# Corrigir status de arquivos com template
-npm run rag:fix-status
-
-# Resetar arquivos sem markdown para pending
-npm run rag:reset-missing
-
-# Marcar arquivos no limbo como rejeitados
-npm run rag:reject-failed
+npm run rag:status        # Gerar relatório de status
+npm run rag:reprocess     # Reprocessar arquivo específico
+npm run db:studio         # Abrir Drizzle Studio
 ```
-
-Para mais detalhes sobre troubleshooting e scripts utilitários, consulte [docs/guides/troubleshooting.md](./docs/guides/troubleshooting.md).
 
 ## Estrutura do Projeto
 
 ```
-lw-rag-system/
+qs-nexus/
+├── app/                    # Next.js App Router
+│   ├── api/               # API Routes
+│   ├── (auth)/            # Páginas de autenticação
+│   └── (dashboard)/       # Páginas do dashboard
+├── components/            # Componentes React
 ├── lib/
-│   ├── db/
-│   │   ├── schema/          # Schema Drizzle
-│   │   ├── migrations/       # Migrations SQL
-│   │   └── index.ts         # Conexão com banco
-│   ├── services/            # Serviços principais
-│   │   ├── file-tracker.ts
-│   │   ├── docx-converter.ts
-│   │   ├── classifier.ts
-│   │   ├── chunker.ts
-│   │   ├── embedding-generator.ts
-│   │   └── store-embeddings.ts
-│   └── types/
-│       └── template-document.ts
-├── scripts/                 # Scripts do pipeline
-└── .env.local              # Configurações (não versionado)
+│   ├── db/               # Schema e migrations
+│   ├── services/         # Serviços principais
+│   │   ├── sped-parser.ts
+│   │   ├── csv-parser.ts
+│   │   ├── agent-orchestrator.ts
+│   │   └── ...
+│   └── types/            # Tipos TypeScript
+├── scripts/              # Scripts do pipeline
+└── docs/                 # Documentação
 ```
 
-## Características
+## Formatos Suportados
 
-- ✅ Tracking de processamento (evita duplicatas)
-- ✅ Caminhos relativos (portável entre máquinas)
-- ✅ Conversão DOCX → Markdown (usando mammoth)
-- ✅ Conversão PDF e .doc → Markdown estruturado (com Google Gemini 2.0 Flash quando disponível)
-- ✅ Classificação inteligente com metadados
-- ✅ Chunking por seções Markdown
-- ✅ Embeddings com text-embedding-3-small
-- ✅ Índice HNSW para busca vetorial otimizada
-- ✅ Relatórios de status
-- ✅ Reprocessamento de arquivos individuais
+### SPED (Sistema Público de Escrituração Digital)
 
-### Processamento de Documentos
+- ECD (Escrituração Contábil Digital)
+- ECF (Escrituração Contábil Fiscal)
+- EFD (Escrituração Fiscal Digital)
 
-O sistema suporta três formatos de documentos:
+### CSV
 
-- **DOCX**: Convertido usando `mammoth`, gerando markdown bem estruturado automaticamente
-- **PDF**: Extração de texto com `pdf-parse` e estruturação com Google Gemini 2.0 Flash (quando `GOOGLE_GENERATIVE_AI_API_KEY` está configurada)
-- **DOC**: Extração com `textract`/LibreOffice/Pandoc e estruturação com Google Gemini 2.0 Flash (quando `GOOGLE_GENERATIVE_AI_API_KEY` está configurada)
+- Detecção automática de delimitador
+- Suporte a múltiplos encodings
+- Mapeamento configurável de colunas
 
-Se a chave do Google não estiver configurada, o sistema usa formatação básica como fallback.
+### Documentos
 
-## Documentação
+- PDF (com OCR quando necessário)
+- TXT
+- DOCX
 
-Toda a documentação está na pasta [`docs/`](./docs/):
+## Deploy
 
-- [docs/INDEX.md](./docs/INDEX.md) - Índice da documentação
-- [docs/QUICK_START.md](./docs/QUICK_START.md) - Guia rápido de início
-- [docs/SETUP.md](./docs/SETUP.md) - Guia completo de configuração
-- [docs/README.md](./docs/README.md) - Visão geral do sistema
-- [docs/ARQUITETURA.md](./docs/ARQUITETURA.md) - Arquitetura detalhada
-- [docs/DADOS.md](./docs/DADOS.md) - Estrutura de dados
-- [docs/IMPLEMENTATION_SUMMARY.md](./docs/IMPLEMENTATION_SUMMARY.md) - Resumo da implementação
+### Heroku
 
-## Notas
+```bash
+# Criar Procfile
+echo "web: npm start" > Procfile
 
-- Arquivos rejeitados nunca são reprocessados
-- Caminhos são sempre relativos ao root do projeto
-- Relatório de status é gerado em `processing-status.json`
+# Configurar variáveis no Heroku Dashboard
+heroku config:set DATABASE_URL=...
+heroku config:set OPENAI_API_KEY=...
+```
+
+## Licença
+
+Proprietário - QS Consultoria © 2025

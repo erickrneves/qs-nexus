@@ -1,6 +1,19 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
-import * as schema from './schema/rag'
+import * as ragSchema from './schema/rag'
+import * as spedSchema from './schema/sped'
+import * as workflowSchema from './schema/workflows'
+import * as organizationsSchema from './schema/organizations'
+import * as metadataSchema from './schema/metadata-schemas'
+
+// Mesclar todos os schemas
+const schema = {
+  ...ragSchema,
+  ...spedSchema,
+  ...workflowSchema,
+  ...organizationsSchema,
+  ...metadataSchema,
+}
 
 // Next.js automatically loads .env.local, so we don't need dotenv.config()
 if (!process.env.DATABASE_URL) {
