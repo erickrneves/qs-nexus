@@ -166,6 +166,7 @@ export async function parseCsvFile(
       })
 
       result.rows.push({
+        organizationId: 'temp-org-id', // TODO: Pass organizationId from caller
         rowNumber: hasHeader ? lineNumber - 1 : lineNumber,
         data: rowData,
       })
