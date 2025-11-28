@@ -205,7 +205,7 @@ function detectEncoding(filePath: string): BufferEncoding {
     return 'utf-8'
   }
   if (buffer[0] === 0xfe && buffer[1] === 0xff) {
-    return 'utf16be'
+    return 'utf16le' // Node doesn't support utf16be directly
   }
   if (buffer[0] === 0xff && buffer[1] === 0xfe) {
     return 'utf16le'
