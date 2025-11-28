@@ -27,6 +27,7 @@ const client = postgres(process.env.DATABASE_URL, {
   max: maxConnections,
   idle_timeout: 20,
   max_lifetime: 60 * 30, // 30 minutos
+  ssl: { rejectUnauthorized: false }, // Required for Heroku Postgres
 })
 
 export const db = drizzle(client, { schema })
