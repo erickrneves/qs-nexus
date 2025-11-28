@@ -1,25 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Para Heroku Docker deployment
-  output: 'standalone',
-  
-  // Configurações de produção
-  poweredByHeader: false,
-  compress: true,
-  
-  // Variáveis de ambiente públicas
-  env: {
-    NEXT_PUBLIC_APP_NAME: 'QS Nexus',
-    NEXT_PUBLIC_APP_VERSION: '2.0.0',
-  },
-  
-  // Experimental features
+  output: 'standalone', // Required for Docker deployments
   experimental: {
-    serverActions: {
-      bodySizeLimit: '10mb',
-    },
+    serverComponentsExternalPackages: ['drizzle-orm', 'postgres'],
   },
 }
 
 export default nextConfig
-
