@@ -158,7 +158,6 @@ async function seed() {
 
     if (existingSpedSchema.length === 0) {
       await db.insert(metadataSchemas).values({
-        organizationId: null, // Global
         name: BASE_SCHEMAS.sped_ecd.name,
         type: BASE_SCHEMAS.sped_ecd.type,
         description: 'Schema padrão para arquivos SPED ECD',
@@ -182,7 +181,6 @@ async function seed() {
 
     if (existingLegalSchema.length === 0) {
       await db.insert(metadataSchemas).values({
-        organizationId: null, // Global
         name: BASE_SCHEMAS.legal_document.name,
         type: BASE_SCHEMAS.legal_document.type,
         description: 'Schema padrão para documentos legais',
@@ -210,7 +208,6 @@ async function seed() {
 
     if (existingWorkflow.length === 0) {
       await db.insert(workflowTemplates).values({
-        organizationId: null, // Global
         name: 'Análise Fiscal Básica',
         description: 'Workflow de exemplo para análise básica de dados SPED',
         isShared: true,
