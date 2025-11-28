@@ -540,7 +540,8 @@ export function generateCsvSummaryMarkdown(result: CsvParseResult): string {
 
     const sampleRows = result.rows.slice(0, 5)
     for (const row of sampleRows) {
-      const values = result.headers.map(h => String(row.data[h] || ''))
+      const rowData = row.data as Record<string, unknown>
+      const values = result.headers.map(h => String(rowData[h] || ''))
       markdown += '| ' + values.join(' | ') + ' |\n'
     }
   }
