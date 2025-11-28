@@ -25,8 +25,12 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Build args
+ARG DATABASE_URL=postgresql://localhost:5432/temp
+
 # Disable telemetry during build
 ENV NEXT_TELEMETRY_DISABLED 1
+ENV DATABASE_URL=$DATABASE_URL
 
 # Build Next.js app
 RUN npm run build
