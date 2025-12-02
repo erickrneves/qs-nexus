@@ -3,7 +3,7 @@ import {
   organizations, 
   organizationMembers
 } from './schema/organizations'
-import { ragUsers } from './schema/rag-ragUsers'
+import { ragUsers } from './schema/rag-users'
 import {
   workflowTemplates,
 } from './schema/workflows'
