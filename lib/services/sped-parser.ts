@@ -99,9 +99,13 @@ export async function parseSpedFile(filePath: string): Promise<SpedParseResult> 
     },
   }
 
-  // Calcular hash do arquivo
-  const fileBuffer = readFileSync(filePath)
-  result.file.fileHash = createHash('sha256').update(fileBuffer).digest('hex')
+  try {
+    // Calcular hash do arquivo
+    const fileBuffer = readFileSync(filePath)
+    result.file.fileHash = createHash('sha256').update(fileBuffer).digest('hex')
+  } catch (error) {
+    throw new Error(`Erro ao ler arquivo: ${error instanceof Error ? error.message : 'Desconhecido'}`)
+  }
 
   // Criar readline stream para processar linha por linha
   const fileStream = createReadStream(filePath, { encoding: 'latin1' })
@@ -210,13 +214,28 @@ function parseLine(line: string): string[] {
  */
 function parseRecord0000(fields: string[], result: SpedParseResult): void {
   // |0000|LECD|01012024|31122024|EMPRESA|CNPJ|UF|IE|COD_MUN|...
-  if (fields.length < 7) return
+  if (fields.length < 7) {
+    throw new Error('Registro 0000 incompleto - arquivo SPED inválido')
+  }
 
   result.file.fileType = fields[2]?.toLowerCase() === 'lecd' ? 'ecd' : 'ecd'
-  result.file.periodStart = parseDate(fields[3]) || result.file.periodStart
-  result.file.periodEnd = parseDate(fields[4]) || result.file.periodEnd
+  
+  const startDate = parseDate(fields[3])
+  const endDate = parseDate(fields[4])
+  
+  if (!startDate || !endDate) {
+    throw new Error('Datas inválidas no registro 0000')
+  }
+  
+  result.file.periodStart = startDate
+  result.file.periodEnd = endDate
   result.file.companyName = cleanString(fields[5]) || 'Não informado'
   result.file.cnpj = fields[6]?.replace(/\D/g, '') || ''
+  
+  if (!result.file.cnpj) {
+    throw new Error('CNPJ não encontrado no registro 0000')
+  }
+  
   result.file.stateCode = fields[7] || null
   result.file.cityCode = fields[9] || null
 }
@@ -226,13 +245,21 @@ function parseRecord0000(fields: string[], result: SpedParseResult): void {
  */
 function parseRecordC050(fields: string[], result: SpedParseResult): void {
   // |C050|DT_ALT|COD_NAT|IND_CTA|NIVEL|COD_CTA|COD_CTA_SUP|CTA|
-  if (fields.length < 9) return
+  if (fields.length < 9) {
+    console.warn(`Registro C050 incompleto - campos insuficientes`)
+    return
+  }
 
-  const accountCode = fields[6] || ''
+  const accountCode = fields[6]?.trim() || ''
+  if (!accountCode) {
+    console.warn(`Registro C050 sem código de conta`)
+    return
+  }
+
   const accountLevel = parseInt(fields[5], 10) || 1
   const accountType = (fields[4] === 'S' ? 'S' : 'A') as 'S' | 'A'
   const accountName = cleanString(fields[8]) || 'Sem nome'
-  const parentAccountCode = fields[7] || null
+  const parentAccountCode = fields[7]?.trim() || null
 
   // Determinar natureza baseado no primeiro dígito do código
   const firstDigit = accountCode.charAt(0)

@@ -25,9 +25,11 @@ export function FileUpload({
   const [isDragging, setIsDragging] = useState(false)
 
   // Sincroniza arquivos com o callback após atualização do estado
+  // Removido onFilesSelected das dependências para evitar loop infinito
   useEffect(() => {
     onFilesSelected(files)
-  }, [files, onFilesSelected])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [files])
 
   const getFileIcon = (fileName: string) => {
     const lower = fileName.toLowerCase()

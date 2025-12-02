@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { FileUpload } from '@/components/upload/file-upload'
 import { ProcessingProgress } from '@/components/upload/processing-progress'
+import { SpedProcessingProgress } from '@/components/upload/sped-processing-progress'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -103,47 +104,38 @@ export default function UploadPage() {
       return
     }
 
-    setIsUploading(true)
-    const results: IngestResult[] = []
-
-    for (const file of spedFiles) {
-      try {
-        const formData = new FormData()
-        formData.append('file', file)
-
-        const response = await fetch('/api/ingest/sped', {
-          method: 'POST',
-          body: formData,
-        })
-
-        const data = await response.json()
-
-        results.push({
-          success: response.ok,
-          type: 'sped',
-          fileName: file.name,
-          stats: data.stats,
-          errors: data.errors,
-        })
-
-        if (response.ok) {
-          toast.success(`SPED processado: ${data.company}`)
-        } else {
-          toast.error(`Erro em ${file.name}: ${data.error}`)
-        }
-      } catch (error) {
-        results.push({
-          success: false,
-          type: 'sped',
-          fileName: file.name,
-          errors: [{ line: 0, message: 'Erro de conexão' }],
-        })
-        toast.error(`Erro ao processar ${file.name}`)
-      }
+    if (spedFiles.length > 1) {
+      toast.error('Por favor, selecione apenas um arquivo SPED por vez')
+      return
     }
 
-    setIngestResults(results)
-    setIsUploading(false)
+    setIsUploading(true)
+
+    try {
+      const file = spedFiles[0]
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch('/api/ingest/sped', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.jobId) {
+        toast.success(`Processamento iniciado! Tempo estimado: ${data.estimatedTime}`)
+        setJobId(data.jobId)
+        setIsProcessing(true)
+      } else {
+        toast.error(`Erro: ${data.error || 'Erro desconhecido'}`)
+      }
+    } catch (error) {
+      console.error('SPED upload error:', error)
+      toast.error('Erro ao iniciar processamento SPED')
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   // Upload CSV
@@ -249,13 +241,18 @@ export default function UploadPage() {
 
               <Button
                 onClick={handleSpedUpload}
-                disabled={selectedFiles.length === 0 || isUploading}
+                disabled={selectedFiles.length === 0 || isUploading || isProcessing}
                 className="w-full bg-gradient-to-r from-emerald-500 to-cyan-600 hover:from-emerald-600 hover:to-cyan-700"
               >
                 {isUploading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Processando SPED...
+                    Iniciando processamento...
+                  </>
+                ) : isProcessing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Processando...
                   </>
                 ) : (
                   <>
@@ -264,6 +261,14 @@ export default function UploadPage() {
                   </>
                 )}
               </Button>
+
+              {jobId && isProcessing && (
+                <SpedProcessingProgress 
+                  jobId={jobId} 
+                  fileName={selectedFiles[0]?.name}
+                  onComplete={handleJobComplete} 
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>

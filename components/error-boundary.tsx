@@ -4,6 +4,7 @@ import { Component, ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { suppressExtensionErrors } from '@/lib/utils/suppress-extension-errors'
 
 interface Props {
   children: ReactNode
@@ -19,6 +20,11 @@ export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props)
     this.state = { hasError: false, error: null }
+  }
+
+  componentDidMount() {
+    // Inicializar supressão de erros de extensões
+    suppressExtensionErrors()
   }
 
   static getDerivedStateFromError(error: Error): State {

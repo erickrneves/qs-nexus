@@ -45,6 +45,7 @@ export async function loadTemplateSchemaConfig(schemaId?: string): Promise<Templ
   return {
     id: config.id,
     name: config.name,
+    documentType: (config.documentType as 'juridico' | 'contabil' | 'geral') || 'geral',
     fields,
     isActive: config.isActive ?? false,
     createdAt: config.createdAt,
@@ -67,6 +68,7 @@ export function validateSchemaConfig(data: {
  */
 export async function createTemplateSchemaConfig(data: {
   name: string
+  documentType?: 'juridico' | 'contabil' | 'geral'
   fields: FieldDefinition[]
   isActive?: boolean
 }): Promise<TemplateSchemaConfig> {
@@ -76,18 +78,24 @@ export async function createTemplateSchemaConfig(data: {
     throw new Error(`Schema inválido: ${validation.errors.join(', ')}`)
   }
 
-  // Se esta for marcada como ativa, desativa as outras
+  const documentType = data.documentType || 'geral'
+
+  // Se esta for marcada como ativa, desativa outras do mesmo tipo
   if (data.isActive) {
     await db
       .update(templateSchemaConfigs)
       .set({ isActive: false })
-      .where(eq(templateSchemaConfigs.isActive, true))
+      .where(and(
+        eq(templateSchemaConfigs.documentType, documentType),
+        eq(templateSchemaConfigs.isActive, true)
+      ))
   }
 
   const result = await db
     .insert(templateSchemaConfigs)
     .values({
       name: data.name,
+      documentType,
       fields: data.fields as any, // JSONB
       isActive: data.isActive ?? false,
     })
@@ -99,6 +107,7 @@ export async function createTemplateSchemaConfig(data: {
   return {
     id: config.id,
     name: config.name,
+    documentType: (config.documentType as 'juridico' | 'contabil' | 'geral') || 'geral',
     fields,
     isActive: config.isActive ?? false,
     createdAt: config.createdAt,
@@ -113,20 +122,26 @@ export async function updateTemplateSchemaConfig(
   id: string,
   data: {
     name?: string
+    documentType?: 'juridico' | 'contabil' | 'geral'
     fields?: FieldDefinition[]
     isActive?: boolean
   }
 ): Promise<TemplateSchemaConfig> {
-  // Se estiver atualizando para ativa, desativa as outras
+  // Carrega configuração atual
+  const current = await loadTemplateSchemaConfig(id)
+  const documentType = data.documentType ?? current.documentType
+
+  // Se estiver atualizando para ativa, desativa outras do mesmo tipo
   if (data.isActive === true) {
     await db
       .update(templateSchemaConfigs)
       .set({ isActive: false })
-      .where(eq(templateSchemaConfigs.isActive, true))
+      .where(and(
+        eq(templateSchemaConfigs.documentType, documentType),
+        eq(templateSchemaConfigs.isActive, true)
+      ))
   }
 
-  // Carrega configuração atual para validar com valores completos
-  const current = await loadTemplateSchemaConfig(id)
   const updatedData = {
     name: data.name ?? current.name,
     fields: data.fields ?? current.fields,
@@ -158,6 +173,7 @@ export async function updateTemplateSchemaConfig(
   return {
     id: config.id,
     name: config.name,
+    documentType: (config.documentType as 'juridico' | 'contabil' | 'geral') || 'geral',
     fields,
     isActive: config.isActive ?? false,
     createdAt: config.createdAt,
@@ -179,6 +195,7 @@ export async function listTemplateSchemaConfigs(): Promise<TemplateSchemaConfig[
     return {
       id: config.id,
       name: config.name,
+      documentType: (config.documentType as 'juridico' | 'contabil' | 'geral') || 'geral',
       fields,
       isActive: config.isActive ?? false,
       createdAt: config.createdAt,

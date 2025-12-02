@@ -37,6 +37,8 @@ export const fileStatusEnum = pgEnum('file_status', [
   'rejected',
 ])
 
+export const fileTypeEnum = pgEnum('file_type', ['document', 'sped', 'csv'])
+
 export const docTypeEnum = pgEnum('doc_type', [
   'peticao_inicial',
   'contestacao',
@@ -64,6 +66,9 @@ export const complexityEnum = pgEnum('complexity', ['simples', 'medio', 'complex
 // Model provider enum for classification configs
 export const modelProviderEnum = pgEnum('model_provider', ['openai', 'google'])
 
+// Document type enum for classification and schema configs
+export const documentTypeEnum = pgEnum('document_type', ['juridico', 'contabil', 'geral'])
+
 export const documentFiles = pgTable('document_files', {
   id: uuid('id').primaryKey().defaultRandom(),
   
@@ -74,6 +79,7 @@ export const documentFiles = pgTable('document_files', {
   filePath: text('file_path').notNull().unique(),
   fileName: text('file_name').notNull(),
   fileHash: text('file_hash').notNull(),
+  fileType: fileTypeEnum('file_type').notNull().default('document'),
   status: fileStatusEnum('status').notNull().default('pending'),
   rejectedReason: text('rejected_reason'),
   wordsCount: integer('words_count'),
@@ -90,6 +96,7 @@ export const classificationConfigs = pgTable('classification_configs', {
   organizationId: uuid('organization_id'),
   
   name: text('name').notNull(),
+  documentType: documentTypeEnum('document_type').notNull().default('geral'),
   systemPrompt: text('system_prompt').notNull(),
   modelProvider: modelProviderEnum('model_provider').notNull(),
   modelName: text('model_name').notNull(),
@@ -109,6 +116,7 @@ export const templateSchemaConfigs = pgTable('template_schema_configs', {
   organizationId: uuid('organization_id'),
   
   name: text('name').notNull(),
+  documentType: documentTypeEnum('document_type').notNull().default('geral'),
   fields: jsonb('fields').notNull(), // Array of field definitions
   isActive: boolean('is_active').default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),

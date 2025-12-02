@@ -127,14 +127,8 @@ export default function TemplateSchemaSettingsPage() {
 
   return (
     <SettingsLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-tight">Schema de Template</h2>
-            <p className="text-muted-foreground">
-              Configure o schema dinâmico de templates com campos personalizáveis
-            </p>
-          </div>
+      <div className="flex flex-1 flex-col space-y-6">
+        <div className="flex items-center justify-end">
           <Button onClick={handleNew}>
             <Plus className="h-4 w-4 mr-2" />
             Novo Schema
@@ -142,7 +136,7 @@ export default function TemplateSchemaSettingsPage() {
         </div>
 
         {/* Lista de Schemas */}
-        <Card>
+        <Card className="flex-1">
           <CardHeader>
             <CardTitle>Schemas Existentes</CardTitle>
             <CardDescription>

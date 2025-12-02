@@ -176,3 +176,106 @@ export function TableSkeleton() {
     </div>
   )
 }
+
+export function ChatSkeleton() {
+  return (
+    <div className="flex flex-col h-full gap-4 p-4">
+      {/* Messages */}
+      <div className="flex-1 space-y-4">
+        {/* User message */}
+        <div className="flex justify-end">
+          <div className="max-w-[80%] space-y-2">
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-16 w-full rounded-lg" />
+          </div>
+        </div>
+        
+        {/* AI message */}
+        <div className="flex justify-start">
+          <div className="max-w-[80%] space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-24 w-full rounded-lg" />
+          </div>
+        </div>
+        
+        {/* User message */}
+        <div className="flex justify-end">
+          <div className="max-w-[80%] space-y-2">
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-20 w-full rounded-lg" />
+          </div>
+        </div>
+      </div>
+      
+      {/* Input */}
+      <div className="space-y-2">
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <Skeleton className="h-4 w-64" />
+      </div>
+    </div>
+  )
+}
+
+export function NotificationsSkeleton() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="flex items-start gap-3 p-4 border rounded-lg">
+          <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-3 w-3/4" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+          <Skeleton className="h-8 w-8 rounded" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export function SettingsSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Page header */}
+      <div className="space-y-2">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-4 w-96 max-w-full" />
+      </div>
+      
+      {/* Settings cards */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Card key={i} className="animate-pulse">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-3 w-full" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-10 w-full rounded" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function CardSkeleton() {
+  return (
+    <Card className="animate-pulse">
+      <CardHeader>
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-4 w-64" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-32 w-full rounded-md" />
+      </CardContent>
+    </Card>
+  )
+}

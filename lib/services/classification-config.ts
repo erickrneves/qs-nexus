@@ -7,6 +7,7 @@ import { parseClassificationModel, parseModelProvider, getModelTokenLimits } fro
 export interface ClassificationConfig {
   id: string
   name: string
+  documentType: 'juridico' | 'contabil' | 'geral'
   systemPrompt: string
   modelProvider: 'openai' | 'google'
   modelName: string
@@ -19,8 +20,86 @@ export interface ClassificationConfig {
 }
 
 /**
+ * Detecta o tipo de documento baseado no conteúdo
+ */
+export function detectDocumentType(markdown: string): 'juridico' | 'contabil' {
+  // SPED files têm marcadores específicos
+  if (markdown.includes('|0000|') || markdown.includes('SPED') || markdown.includes('ECD') || markdown.includes('ECF')) {
+    return 'contabil'
+  }
+  
+  // Por padrão, assume jurídico
+  return 'juridico'
+}
+
+/**
+ * Carrega configuração de classificação baseada no tipo de documento
+ */
+export async function loadConfigByDocumentType(
+  documentType: 'juridico' | 'contabil' | 'geral'
+): Promise<ClassificationConfig> {
+  const result = await db
+    .select()
+    .from(classificationConfigs)
+    .where(and(
+      eq(classificationConfigs.documentType, documentType),
+      eq(classificationConfigs.isActive, true)
+    ))
+    .limit(1)
+
+  if (result.length === 0) {
+    // Fallback para configuração geral
+    const generalResult = await db
+      .select()
+      .from(classificationConfigs)
+      .where(and(
+        eq(classificationConfigs.documentType, 'geral'),
+        eq(classificationConfigs.isActive, true)
+      ))
+      .limit(1)
+
+    if (generalResult.length > 0) {
+      const config = generalResult[0]
+      return {
+        id: config.id,
+        name: config.name,
+        documentType: config.documentType as 'juridico' | 'contabil' | 'geral',
+        systemPrompt: config.systemPrompt,
+        modelProvider: config.modelProvider as 'openai' | 'google',
+        modelName: config.modelName,
+        maxInputTokens: config.maxInputTokens,
+        maxOutputTokens: config.maxOutputTokens,
+        extractionFunctionCode: config.extractionFunctionCode,
+        isActive: config.isActive ?? false,
+        createdAt: config.createdAt,
+        updatedAt: config.updatedAt,
+      }
+    }
+
+    throw new Error(`Nenhuma configuração ativa encontrada para tipo: ${documentType}`)
+  }
+
+  const config = result[0]
+  return {
+    id: config.id,
+    name: config.name,
+    documentType: config.documentType as 'juridico' | 'contabil' | 'geral',
+    systemPrompt: config.systemPrompt,
+    modelProvider: config.modelProvider as 'openai' | 'google',
+    modelName: config.modelName,
+    maxInputTokens: config.maxInputTokens,
+    maxOutputTokens: config.maxOutputTokens,
+    extractionFunctionCode: config.extractionFunctionCode,
+    isActive: config.isActive ?? false,
+    createdAt: config.createdAt,
+    updatedAt: config.updatedAt,
+  }
+}
+
+/**
  * Carrega configuração de classificação do banco
- * Se configId não for fornecido, retorna a configuração ativa
+ * Se configId não for fornecido, retorna a configuração ativa (prioriza jurídico)
+ * @deprecated Use loadConfigByDocumentType() para melhor controle de tipo
  */
 export async function loadClassificationConfig(configId?: string): Promise<ClassificationConfig> {
   let config
@@ -39,7 +118,7 @@ export async function loadClassificationConfig(configId?: string): Promise<Class
 
     config = result[0]
   } else {
-    // Carrega configuração ativa
+    // Carrega configuração ativa (prioriza jurídico)
     const result = await db
       .select()
       .from(classificationConfigs)
@@ -47,7 +126,7 @@ export async function loadClassificationConfig(configId?: string): Promise<Class
       .limit(1)
 
     if (result.length === 0) {
-      throw new Error('Nenhuma configuração de classificação ativa encontrada')
+      throw new Error('Nenhuma configuração ativa encontrada. Execute o seed primeiro.')
     }
 
     config = result[0]
@@ -56,6 +135,7 @@ export async function loadClassificationConfig(configId?: string): Promise<Class
   return {
     id: config.id,
     name: config.name,
+    documentType: config.documentType as 'juridico' | 'contabil' | 'geral',
     systemPrompt: config.systemPrompt,
     modelProvider: config.modelProvider as 'openai' | 'google',
     modelName: config.modelName,
@@ -164,6 +244,7 @@ export function validateClassificationConfig(config: {
  */
 export async function createClassificationConfig(data: {
   name: string
+  documentType: 'juridico' | 'contabil' | 'geral'
   systemPrompt: string
   modelProvider: 'openai' | 'google'
   modelName: string
@@ -178,18 +259,22 @@ export async function createClassificationConfig(data: {
     throw new Error(`Configuração inválida: ${validation.errors.join(', ')}`)
   }
 
-  // Se esta for marcada como ativa, desativa as outras
+  // Se esta for marcada como ativa, desativa outras do mesmo tipo
   if (data.isActive) {
     await db
       .update(classificationConfigs)
       .set({ isActive: false })
-      .where(eq(classificationConfigs.isActive, true))
+      .where(and(
+        eq(classificationConfigs.documentType, data.documentType),
+        eq(classificationConfigs.isActive, true)
+      ))
   }
 
   const result = await db
     .insert(classificationConfigs)
     .values({
       name: data.name,
+      documentType: data.documentType,
       systemPrompt: data.systemPrompt,
       modelProvider: data.modelProvider,
       modelName: data.modelName,
@@ -205,6 +290,7 @@ export async function createClassificationConfig(data: {
   return {
     id: config.id,
     name: config.name,
+    documentType: config.documentType as 'juridico' | 'contabil' | 'geral',
     systemPrompt: config.systemPrompt,
     modelProvider: config.modelProvider as 'openai' | 'google',
     modelName: config.modelName,
@@ -224,6 +310,7 @@ export async function updateClassificationConfig(
   id: string,
   data: {
     name?: string
+    documentType?: 'juridico' | 'contabil' | 'geral'
     systemPrompt?: string
     modelProvider?: 'openai' | 'google'
     modelName?: string
@@ -233,16 +320,21 @@ export async function updateClassificationConfig(
     isActive?: boolean
   }
 ): Promise<ClassificationConfig> {
-  // Se estiver atualizando para ativa, desativa as outras
+  // Carrega configuração atual
+  const current = await loadClassificationConfig(id)
+  const documentType = data.documentType ?? current.documentType
+
+  // Se estiver atualizando para ativa, desativa outras do mesmo tipo
   if (data.isActive === true) {
     await db
       .update(classificationConfigs)
       .set({ isActive: false })
-      .where(eq(classificationConfigs.isActive, true))
+      .where(and(
+        eq(classificationConfigs.documentType, documentType),
+        eq(classificationConfigs.isActive, true)
+      ))
   }
 
-  // Carrega configuração atual para validar com valores completos
-  const current = await loadClassificationConfig(id)
   const updatedData = {
     systemPrompt: data.systemPrompt ?? current.systemPrompt,
     modelProvider: data.modelProvider ?? current.modelProvider,
@@ -276,6 +368,7 @@ export async function updateClassificationConfig(
   return {
     id: config.id,
     name: config.name,
+    documentType: config.documentType as 'juridico' | 'contabil' | 'geral',
     systemPrompt: config.systemPrompt,
     modelProvider: config.modelProvider as 'openai' | 'google',
     modelName: config.modelName,
@@ -297,6 +390,7 @@ export async function listClassificationConfigs(): Promise<ClassificationConfig[
   return results.map(config => ({
     id: config.id,
     name: config.name,
+    documentType: config.documentType as 'juridico' | 'contabil' | 'geral',
     systemPrompt: config.systemPrompt,
     modelProvider: config.modelProvider as 'openai' | 'google',
     modelName: config.modelName,

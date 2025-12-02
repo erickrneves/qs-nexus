@@ -43,6 +43,48 @@
       "when": 1735002000000,
       "tag": "0005_add_cost_to_templates",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1735368000000,
+      "tag": "0006_add_organization_and_sped",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1735369000000,
+      "tag": "0007_add_document_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1735370000000,
+      "tag": "0008_add_organization_to_configs",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1735371000000,
+      "tag": "0009_create_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1735372000000,
+      "tag": "0010_add_organizations",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1735373000000,
+      "tag": "0011_add_file_type",
+      "breakpoints": true
     }
   ]
 }

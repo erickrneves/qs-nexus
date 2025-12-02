@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
 
     const {
       name,
+      documentType,
       systemPrompt,
       modelProvider,
       modelName,
@@ -48,6 +49,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!documentType) {
+      return NextResponse.json(
+        { error: 'Campo obrigatório: documentType (juridico, contabil ou geral)' },
+        { status: 400 }
+      )
+    }
+
     if (!maxInputTokens || !maxOutputTokens) {
       return NextResponse.json(
         { error: 'Campos obrigatórios: maxInputTokens, maxOutputTokens' },
@@ -57,6 +65,7 @@ export async function POST(request: NextRequest) {
 
     const config = await createClassificationConfig({
       name,
+      documentType: documentType as 'juridico' | 'contabil' | 'geral',
       systemPrompt,
       modelProvider,
       modelName,

@@ -15,6 +15,7 @@ import { Check, X } from 'lucide-react'
 interface ClassificationConfig {
   id: string
   name: string
+  documentType: 'juridico' | 'contabil' | 'geral'
   systemPrompt: string
   modelProvider: 'openai' | 'google'
   modelName: string
@@ -28,8 +29,10 @@ interface ClassificationConfig {
 
 interface ClassificationFormProps {
   config?: ClassificationConfig | null
+  defaultDocumentType?: 'juridico' | 'contabil' | 'geral'
   onSubmit: (data: {
     name: string
+    documentType: 'juridico' | 'contabil' | 'geral'
     systemPrompt: string
     modelProvider: 'openai' | 'google'
     modelName: string
@@ -80,12 +83,14 @@ const DEFAULT_EXTRACTION_FUNCTION = `function extractContent(markdown) {
 
 export function ClassificationForm({
   config,
+  defaultDocumentType = 'juridico',
   onSubmit,
   onCancel,
   isLoading = false,
 }: ClassificationFormProps) {
   const [formData, setFormData] = useState({
     name: config?.name || '',
+    documentType: (config?.documentType || defaultDocumentType) as 'juridico' | 'contabil' | 'geral',
     systemPrompt: config?.systemPrompt || '',
     modelProvider: (config?.modelProvider || 'openai') as 'openai' | 'google',
     modelName: config?.modelName || 'gpt-4o-mini',
@@ -123,6 +128,24 @@ export function ClassificationForm({
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="documentType">Tipo de Documento</Label>
+              <select
+                id="documentType"
+                value={formData.documentType}
+                onChange={e => setFormData({ ...formData, documentType: e.target.value as 'juridico' | 'contabil' | 'geral' })}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                required
+              >
+                <option value="juridico">Documentos Jurídicos</option>
+                <option value="contabil">Dados Contábeis (SPED)</option>
+                <option value="geral">Geral</option>
+              </select>
+              <p className="text-sm text-muted-foreground">
+                Tipo de documento que será classificado com esta configuração
+              </p>
+            </div>
+
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="isActive"
@@ -132,7 +155,7 @@ export function ClassificationForm({
                 }
               />
               <Label htmlFor="isActive" className="cursor-pointer">
-                Marcar como configuração ativa
+                Marcar como configuração ativa para este tipo
               </Label>
             </div>
           </TabsContent>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Settings, FileCode, Database } from 'lucide-react'
+import { FileCode, Database } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const settingsNav = [
@@ -10,13 +10,13 @@ const settingsNav = [
     name: 'Classificação',
     href: '/settings/classification',
     icon: FileCode,
-    description: 'Configurar modelos e prompts de classificação',
+    description: 'Modelos e prompts',
   },
   {
     name: 'Schema de Template',
     href: '/settings/template-schema',
     icon: Database,
-    description: 'Configurar schema dinâmico de templates',
+    description: 'Campos dinâmicos',
   },
 ]
 
@@ -28,18 +28,19 @@ export function SettingsLayout({ children }: SettingsLayoutProps) {
   const pathname = usePathname()
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
-        <p className="text-muted-foreground">
-          Gerencie as configurações do sistema de classificação e schemas de templates
-        </p>
-      </div>
+    <div className="flex flex-1 flex-col gap-6">
+      {/* Header com navegação horizontal */}
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
+          <p className="text-muted-foreground">
+            Gerencie as configurações do sistema de classificação e schemas de templates
+          </p>
+        </div>
 
-      <div className="flex flex-col gap-6 lg:flex-row">
-        {/* Sidebar Navigation */}
-        <aside className="lg:w-64 lg:shrink-0">
-          <nav className="space-y-1">
+        {/* Navegação Horizontal (Tabs) */}
+        <div className="border-b">
+          <nav className="flex gap-6" aria-label="Tabs">
             {settingsNav.map(item => {
               const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
               const Icon = item.icon
@@ -48,14 +49,17 @@ export function SettingsLayout({ children }: SettingsLayoutProps) {
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                    'group inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
                   )}
                 >
-                  <Icon className="h-5 w-5" />
-                  <div className="flex flex-col">
+                  <Icon className={cn(
+                    "h-5 w-5 transition-colors",
+                    isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                  )} />
+                  <div className="flex flex-col items-start">
                     <span>{item.name}</span>
                     <span className="text-xs opacity-70">{item.description}</span>
                   </div>
@@ -63,11 +67,11 @@ export function SettingsLayout({ children }: SettingsLayoutProps) {
               )
             })}
           </nav>
-        </aside>
-
-        {/* Main Content */}
-        <div className="flex-1">{children}</div>
+        </div>
       </div>
+
+      {/* Main Content */}
+      <div className="flex-1">{children}</div>
     </div>
   )
 }

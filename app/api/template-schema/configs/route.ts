@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    const { name, fields, isActive } = body
+    const { name, documentType, fields, isActive } = body
 
     // Validação básica
     if (!name || typeof name !== 'string' || name.trim() === '') {
@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
 
     const config = await createTemplateSchemaConfig({
       name,
+      documentType: (documentType as 'juridico' | 'contabil' | 'geral') || 'geral',
       fields: fields as FieldDefinition[],
       isActive: isActive ?? false,
     })

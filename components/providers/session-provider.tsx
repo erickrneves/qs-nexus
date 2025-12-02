@@ -9,7 +9,10 @@ import { AuthProvider } from './auth-provider'
  */
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
+    <SessionProvider 
+      refetchInterval={0} 
+      refetchOnWindowFocus={false}
+    >
       <AuthProvider>{children}</AuthProvider>
     </SessionProvider>
   )

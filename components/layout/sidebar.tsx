@@ -17,6 +17,8 @@ import {
   FileCheck,
   Building2,
   Users,
+  Bell,
+  FileSpreadsheet,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -38,6 +40,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { OrganizationSelector } from '@/components/organization/organization-selector'
 
 const navigationGroups = [
   {
@@ -45,14 +48,17 @@ const navigationGroups = [
     items: [
       { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
       { name: 'Chat IA', href: '/chat', icon: MessageSquare },
+      { name: 'Notificações', href: '/notifications', icon: Bell },
     ],
   },
   {
     title: 'Dados',
     items: [
       { name: 'Upload', href: '/upload', icon: Upload },
-      { name: 'Arquivos', href: '/files', icon: FileText },
-      { name: 'SPED', href: '/sped', icon: Database },
+      { name: 'Documentos Jurídicos', href: '/files', icon: FileText, description: 'Contratos e textos jurídicos' },
+      { name: 'Planilhas (CSV)', href: '/csv', icon: FileSpreadsheet, description: 'Planilhas de controle' },
+      { name: 'SPED (Obrigações)', href: '/sped', icon: Database, description: 'ECD, ECF e EFD' },
+      { name: 'Configurações de Dados', href: '/settings/data', icon: Settings },
     ],
   },
   {
@@ -61,14 +67,7 @@ const navigationGroups = [
       { name: 'Workflows', href: '/workflows', icon: Workflow },
       { name: 'Análises', href: '/analysis', icon: BarChart },
       { name: 'Relatórios', href: '/reports', icon: FileCheck },
-    ],
-  },
-  {
-    title: 'Administração',
-    items: [
-      { name: 'Configurações', href: '/settings', icon: Settings },
-      { name: 'Organizações', href: '/admin/organizations', icon: Building2 },
-      { name: 'Usuários', href: '/admin/users', icon: Users },
+      { name: 'Configurações de IA', href: '/settings/ai', icon: Settings },
     ],
   },
 ]
@@ -91,88 +90,98 @@ export function AppSidebar({ onLinkClick }: AppSidebarProps) {
       <SidebarHeader className="p-4 pb-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton 
-              size="lg" 
-              asChild 
-              className="h-auto py-3 hover:bg-[var(--qs-muted)] rounded-xl transition-all duration-200"
+            <Link 
+              href="/dashboard" 
+              onClick={onLinkClick} 
+              className="flex items-center gap-3 w-full py-3 px-2 hover:bg-[var(--qs-muted)] rounded-xl transition-all duration-200"
             >
-              <Link href="/dashboard" onClick={onLinkClick} className="flex items-center gap-3">
-                {/* Ícone com Gradiente Premium */}
-                <div className="flex aspect-square size-10 items-center justify-center rounded-xl gradient-icon shrink-0">
-                  <Hexagon className="size-5 text-white" />
-                </div>
+              {/* Ícone com Gradiente Premium */}
+              <div className="flex aspect-square size-10 items-center justify-center rounded-xl gradient-icon shrink-0">
+                <Hexagon className="size-5 text-white" />
+              </div>
+              {!isCollapsed && (
                 <div className="flex flex-col gap-0.5 leading-tight overflow-hidden">
                   <span className="font-semibold text-base text-[var(--qs-text)] truncate">
                     QS <span className="gradient-icon-text font-bold">Nexus</span>
                   </span>
                   <span className="text-xs text-[var(--qs-text-muted)] truncate">Inteligência de Dados</span>
                 </div>
-              </Link>
-            </SidebarMenuButton>
+              )}
+            </Link>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
-      {/* Collapse Toggle */}
+      {/* Organization Selector */}
       <div className="px-4 pb-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={toggleSidebar}
-          className="w-full justify-start gap-2 text-[var(--qs-text-muted)] hover:text-[var(--qs-text)] hover:bg-[var(--qs-muted)] rounded-lg h-8"
-        >
-          <ChevronLeft className={`size-4 transition-transform duration-200 ${isCollapsed ? 'rotate-180' : ''}`} />
-          {!isCollapsed && <span className="text-xs">Recolher</span>}
-        </Button>
+        <OrganizationSelector collapsed={isCollapsed} />
       </div>
+
+      {/* Collapse Toggle */}
+      {!isCollapsed && (
+        <div className="px-4 pb-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleSidebar}
+            className="w-full justify-start gap-2 text-[var(--qs-text-muted)] hover:text-[var(--qs-text)] hover:bg-[var(--qs-muted)] rounded-lg h-8 cursor-pointer"
+          >
+            <ChevronLeft className="size-4 transition-transform duration-200" />
+            <span className="text-xs">Recolher</span>
+          </Button>
+        </div>
+      )}
 
       {/* Navigation */}
       <SidebarContent className="px-3">
         {navigationGroups.map((group) => (
           <SidebarGroup key={group.title}>
-            <SidebarGroupLabel className="px-3 mb-2 text-[10px] font-semibold text-[var(--qs-text-tertiary)] uppercase tracking-widest">
-              {group.title}
-            </SidebarGroupLabel>
+            {!isCollapsed && (
+              <SidebarGroupLabel className="px-3 mb-2 text-[10px] font-semibold text-[var(--qs-text-tertiary)] uppercase tracking-widest">
+                {group.title}
+              </SidebarGroupLabel>
+            )}
             <SidebarGroupContent>
               <SidebarMenu className="space-y-1">
                 {group.items.map(item => {
                   const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
                   const Icon = item.icon
 
-                  const menuItem = (
-                    <SidebarMenuItem key={item.name}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={isActive}
-                        size="default"
-                        className={`h-10 px-3 rounded-xl transition-all duration-200 cursor-pointer ${
-                          isActive 
-                            ? 'bg-[var(--gradient-sidebar)] text-white shadow-[var(--qs-shadow-primary)]' 
-                            : 'text-[var(--qs-text-secondary)] hover:bg-[var(--qs-muted)] hover:text-[var(--qs-text)]'
-                        }`}
-                      >
-                        <Link href={item.href} onClick={onLinkClick} className="flex items-center gap-3">
-                          <Icon className="size-[18px] shrink-0" />
-                          <span className="font-medium truncate">{item.name}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                  const linkContent = (
+                    <Link 
+                      href={item.href} 
+                      onClick={onLinkClick}
+                      className={`flex items-center gap-3 w-full h-10 px-3 rounded-xl transition-all duration-200 ${
+                        isActive 
+                          ? 'bg-[var(--qs-green)] text-white font-semibold shadow-lg' 
+                          : 'text-[var(--qs-text-secondary)] hover:bg-[var(--qs-muted)] hover:text-[var(--qs-text)]'
+                      }`}
+                    >
+                      <Icon className="size-[18px] shrink-0" />
+                      {!isCollapsed && <span className="font-medium truncate">{item.name}</span>}
+                    </Link>
                   )
 
-                  if (isCollapsed) {
-                    return (
-                      <Tooltip key={item.name} delayDuration={0}>
-                        <TooltipTrigger asChild>
-                          {menuItem}
-                        </TooltipTrigger>
-                        <TooltipContent side="right" className="bg-[var(--qs-card)] border-[var(--qs-border)] text-[var(--qs-text)]">
-                          {item.name}
-                        </TooltipContent>
-                      </Tooltip>
-                    )
-                  }
-
-                  return menuItem
+                  return (
+                    <SidebarMenuItem key={item.name}>
+                      {isCollapsed ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            {linkContent}
+                          </TooltipTrigger>
+                          <TooltipContent 
+                            side="right" 
+                            sideOffset={8}
+                            className="bg-[var(--qs-card)] border-[var(--qs-border)] text-[var(--qs-text)] z-50"
+                          >
+                            {item.name}
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        linkContent
+                      )}
+                    </SidebarMenuItem>
+                  )
                 })}
               </SidebarMenu>
             </SidebarGroupContent>

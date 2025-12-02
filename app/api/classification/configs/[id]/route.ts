@@ -41,6 +41,7 @@ export async function PUT(
 
     const {
       name,
+      documentType,
       systemPrompt,
       modelProvider,
       modelName,
@@ -52,6 +53,7 @@ export async function PUT(
 
     const updateData: {
       name?: string
+      documentType?: 'juridico' | 'contabil' | 'geral'
       systemPrompt?: string
       modelProvider?: 'openai' | 'google'
       modelName?: string
@@ -62,6 +64,7 @@ export async function PUT(
     } = {}
 
     if (name !== undefined) updateData.name = name
+    if (documentType !== undefined) updateData.documentType = documentType as 'juridico' | 'contabil' | 'geral'
     if (systemPrompt !== undefined) updateData.systemPrompt = systemPrompt
     if (modelProvider !== undefined) updateData.modelProvider = modelProvider
     if (modelName !== undefined) updateData.modelName = modelName

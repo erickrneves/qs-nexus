@@ -306,6 +306,34 @@ body {
 }
 
 /* ============================================
+   POPOVER & DROPDOWN - Backgrounds Sólidos
+   ============================================ */
+[data-radix-popper-content-wrapper],
+[role="dialog"],
+[role="menu"],
+[role="tablist"],
+.popover-content {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Garantir backgrounds 100% opacos */
+[data-radix-popper-content-wrapper] > *,
+[role="dialog"] > *,
+[role="menu"] > * {
+  background-color: hsl(var(--card)) !important;
+}
+
+/* Tabs - backgrounds sólidos */
+[role="tablist"] {
+  background-color: hsl(var(--muted)) !important;
+}
+
+[role="tab"][data-state="active"] {
+  background-color: hsl(var(--card)) !important;
+}
+
+/* ============================================
    SCROLLBAR - Minimalista
    ============================================ */
 ::-webkit-scrollbar {
@@ -399,6 +427,19 @@ input[type=number]::-webkit-inner-spin-button {
 }
 input[type=number] {
   -moz-appearance: textfield;
+}
+
+/* ============================================
+   WORD BREAKING - Quebra de Palavras Longas
+   ============================================ */
+.overflow-wrap-anywhere {
+  overflow-wrap: anywhere;
+}
+
+.hyphens-auto {
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  -moz-hyphens: auto;
 }
 
 /* ============================================

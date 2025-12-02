@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/index'
 import { documentFiles, templates } from '@/lib/db/schema/rag'
-import { eq, desc, asc, and, or, ilike, sql } from 'drizzle-orm'
+import { eq, desc, asc, and, or, ilike, sql, gte, lte } from 'drizzle-orm'
 
 // Cache por 10 segundos (listagem muda frequentemente)
 export const revalidate = 10
@@ -11,6 +11,16 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
+    
+    // Filtros multi-tenant e tipo de arquivo
+    const organizationId = searchParams.get('organizationId')
+    const fileType = searchParams.get('fileType') // 'document', 'sped', 'csv', 'all'
+    
+    // Filtros de período
+    const dateFrom = searchParams.get('dateFrom')
+    const dateTo = searchParams.get('dateTo')
+    
+    // Filtros existentes
     const status = searchParams.get('status')
     const area = searchParams.get('area')
     const docType = searchParams.get('docType')
@@ -22,6 +32,24 @@ export async function GET(request: NextRequest) {
 
     // Construir condições WHERE
     const conditions = []
+
+    // CRÍTICO: Filtro por organização para multi-tenant
+    if (organizationId) {
+      conditions.push(eq(documentFiles.organizationId, organizationId))
+    }
+
+    // Filtro por tipo de arquivo
+    if (fileType && fileType !== 'all') {
+      conditions.push(eq(documentFiles.fileType, fileType as any))
+    }
+
+    // Filtro por período
+    if (dateFrom) {
+      conditions.push(gte(documentFiles.createdAt, new Date(dateFrom)))
+    }
+    if (dateTo) {
+      conditions.push(lte(documentFiles.createdAt, new Date(dateTo)))
+    }
 
     if (status && status !== 'all') {
       conditions.push(eq(documentFiles.status, status as any))
@@ -62,11 +90,14 @@ export async function GET(request: NextRequest) {
     let query = db
       .select({
         id: documentFiles.id,
+        organizationId: documentFiles.organizationId,
         fileName: documentFiles.fileName,
         filePath: documentFiles.filePath,
+        fileType: documentFiles.fileType,
         status: documentFiles.status,
         wordsCount: documentFiles.wordsCount,
         processedAt: documentFiles.processedAt,
+        createdAt: documentFiles.createdAt,
         updatedAt: documentFiles.updatedAt,
         templateId: templates.id,
         templateTitle: templates.title,

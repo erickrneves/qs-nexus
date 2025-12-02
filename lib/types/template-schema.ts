@@ -97,6 +97,7 @@ export type FieldDefinition =
 export interface TemplateSchemaConfig {
   id: string
   name: string
+  documentType: 'juridico' | 'contabil' | 'geral'
   fields: FieldDefinition[]
   isActive: boolean
   createdAt: Date
@@ -185,6 +186,7 @@ export const FieldDefinitionSchema: z.ZodType<FieldDefinition> = z.lazy(() =>
 export const TemplateSchemaConfigSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
+  documentType: z.enum(['juridico', 'contabil', 'geral']).default('geral'),
   fields: z.array(FieldDefinitionSchema),
   isActive: z.boolean(),
   createdAt: z.date(),
