@@ -8,6 +8,7 @@ import { getUserWithOrganizations, updateLastLogin } from '@/lib/services/user-s
 import type { GlobalRole, OrgRole } from '@/lib/auth/permissions'
 
 const authConfig = NextAuth({
+  trustHost: true,
   providers: [
     Credentials({
       name: 'Credentials',
