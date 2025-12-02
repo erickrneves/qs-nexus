@@ -332,8 +332,8 @@ async function processSpedFileAsync(jobId: string, filePath: string, fileName: s
         })),
         sampleBalances: sampleBalances.map(bal => ({
           accountCode: bal.accountCode,
-          debitBalance: parseFloat(bal.debitBalance) || 0,
-          creditBalance: parseFloat(bal.creditBalance) || 0,
+          debitBalance: parseFloat(bal.debitTotal) || 0,
+          creditBalance: parseFloat(bal.creditTotal) || 0,
         })),
       })
       
