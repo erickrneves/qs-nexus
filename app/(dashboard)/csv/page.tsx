@@ -85,7 +85,7 @@ export default function CsvPage() {
 
   useEffect(() => {
     loadCsvFiles()
-  }, [activeOrganization?.id, statusFilter, searchQuery, dateFrom, dateTo])
+  }, [currentOrg?.id, statusFilter, searchQuery, dateFrom, dateTo])
 
   const loadCsvFiles = async () => {
     setIsLoading(true)
@@ -93,8 +93,8 @@ export default function CsvPage() {
       const params = new URLSearchParams()
       
       // Filtro por organização
-      if (activeOrganization?.id) {
-        params.set('organizationId', activeOrganization.id)
+      if (currentOrg?.id) {
+        params.set('organizationId', currentOrg.id)
       }
       
       // Filtros específicos
@@ -182,10 +182,10 @@ export default function CsvPage() {
               </p>
             </div>
           </div>
-          {activeOrganization && (
+          {currentOrg && (
             <Badge variant="outline" className="mt-3 gap-2">
               <Building2 className="h-3 w-3" />
-              {activeOrganization.name}
+              {currentOrg.name}
             </Badge>
           )}
         </div>
