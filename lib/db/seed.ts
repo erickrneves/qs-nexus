@@ -121,10 +121,8 @@ async function seed() {
       await db.insert(organizationMembers).values({
         organizationId: orgId,
         userId: userId,
-        role: 'owner',
-        permissions: [],
+        role: 'admin',
         isActive: true,
-        invitedBy: null,
       })
       console.log('   ✓ Membership criada')
     } else {
