@@ -42,10 +42,10 @@ export async function GET(request: NextRequest) {
     
     // Filtro por ano fiscal
     if (yearFrom) {
-      conditions.push(gte(spedFiles.periodStart, new Date(`${yearFrom}-01-01`)))
+      conditions.push(gte(spedFiles.periodStart, `${yearFrom}-01-01`))
     }
     if (yearTo) {
-      conditions.push(lte(spedFiles.periodEnd, new Date(`${yearTo}-12-31`)))
+      conditions.push(lte(spedFiles.periodEnd, `${yearTo}-12-31`))
     }
     
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined
