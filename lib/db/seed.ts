@@ -1,10 +1,9 @@
 import { db } from '@/lib/db'
 import { 
   organizations, 
-  users, 
-  organizationMemberships, 
-  auditLogs 
+  organizationMembers
 } from './schema/organizations'
+import { ragUsers } from './schema/rag-users'
 import {
   workflowTemplates,
 } from './schema/workflows'
