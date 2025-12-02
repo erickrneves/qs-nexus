@@ -3,7 +3,7 @@ import {
   organizations, 
   organizationMembers
 } from './schema/organizations'
-import { ragUsers } from './schema/rag-users'
+import { ragUsers } from './schema/rag-ragUsers'
 import {
   workflowTemplates,
 } from './schema/workflows'
@@ -77,8 +77,8 @@ async function seed() {
 
     const existingUser = await db
       .select()
-      .from(users)
-      .where(eq(users.email, 'admin@qsconsultoria.com.br'))
+      .from(ragUsers)
+      .where(eq(ragUsers.email, 'admin@qsconsultoria.com.br'))
       .limit(1)
 
     let userId: string
@@ -90,7 +90,7 @@ async function seed() {
       const hashedPassword = await bcrypt.hash('admin123!@#', 10)
 
       const [newUser] = await db
-        .insert(users)
+        .insert(ragUsers)
         .values({
           email: 'admin@qsconsultoria.com.br',
           password: hashedPassword,
@@ -123,14 +123,14 @@ async function seed() {
 
     const existingMembership = await db
       .select()
-      .from(organizationMemberships)
+      .from(organizationMembers)
       .where(
-        eq(organizationMemberships.userId, userId)
+        eq(organizationMembers.userId, userId)
       )
       .limit(1)
 
     if (existingMembership.length === 0) {
-      await db.insert(organizationMemberships).values({
+      await db.insert(organizationMembers).values({
         organizationId: orgId,
         userId: userId,
         role: 'owner',
