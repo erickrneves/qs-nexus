@@ -94,19 +94,7 @@ async function seed() {
         .values({
           email: 'admin@qsconsultoria.com.br',
           password: hashedPassword,
-          fullName: 'Administrador QS',
-          displayName: 'Admin',
-          defaultOrgId: orgId,
-          globalRole: 'super_admin',
-          preferences: {
-            theme: 'dark',
-            language: 'pt-BR',
-            notifications: {
-              email: true,
-              push: false,
-            },
-          },
-          isActive: true,
+          name: 'Administrador QS',
         })
         .returning()
 
