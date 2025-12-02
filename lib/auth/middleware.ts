@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 // TODO: Fix NextAuth v5 compatibility
 // import { getServerSession } from 'next-auth'
 import { db } from '@/lib/db'
-import { users, organizationMemberships } from '@/lib/db/schema/organizations'
+import { ragUsers } from '@/lib/db/schema/rag-users'
+import { organizationMembers } from '@/lib/db/schema/organizations'
 import { eq } from 'drizzle-orm'
 import {
   UserContext,
