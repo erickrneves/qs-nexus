@@ -11,6 +11,15 @@ import {
   WorkflowExecutionStepInput,
 } from '@/lib/services/workflow-service'
 import { processWorkflowNotification } from '@/lib/services/notification-service'
+import {
+  metricsCollector,
+  logWorkflowStart,
+  logWorkflowStep,
+  logWorkflowComplete,
+  logWorkflowFailed,
+  logToolCall,
+  logLLMCall,
+} from './workflow-metrics'
 
 /**
  * Tipos de nodes suportados
@@ -86,7 +95,17 @@ export class WorkflowEngine {
    * Executa o workflow completo
    */
   async execute(): Promise<ExecutionResult> {
-    console.log(`[WorkflowEngine] Iniciando execução: ${this.context.executionId}`)
+    const startTime = Date.now()
+
+    // Iniciar tracking de métricas
+    metricsCollector.start(
+      this.context.executionId,
+      this.context.workflowName,
+      this.context.userId,
+      this.context.organizationId
+    )
+
+    logWorkflowStart(this.context.executionId, this.context.workflowName, this.context.input)
 
     let totalTokens = 0
     let totalCost = 0
@@ -157,6 +176,11 @@ export class WorkflowEngine {
         progress: '100',
       })
 
+      // Finalizar métricas
+      metricsCollector.finish(this.context.executionId, 'completed')
+      
+      const duration = Date.now() - startTime
+
       // Notificar conclusão
       await processWorkflowNotification(
         this.context.userId,
@@ -167,7 +191,7 @@ export class WorkflowEngine {
         { output: finalOutput }
       )
 
-      console.log(`[WorkflowEngine] Execução concluída: ${this.context.executionId}`)
+      logWorkflowComplete(this.context.executionId, duration, finalOutput)
 
       return {
         success: true,
@@ -177,9 +201,12 @@ export class WorkflowEngine {
         cost: totalCost,
       }
     } catch (error) {
-      console.error(`[WorkflowEngine] Erro na execução:`, error)
-
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
+
+      // Finalizar métricas com erro
+      metricsCollector.finish(this.context.executionId, 'failed')
+
+      logWorkflowFailed(this.context.executionId, errorMessage)
 
       // Atualizar status para failed
       await updateExecutionStatus(this.context.executionId, 'failed', {
@@ -216,7 +243,7 @@ export class WorkflowEngine {
     tokens?: number
     cost?: number
   }> {
-    console.log(`[WorkflowEngine] Executando node: ${node.id} (${node.type})`)
+    logWorkflowStep(this.context.executionId, node.id, node.type)
 
     this.context.stepIndex++
 
@@ -281,6 +308,16 @@ export class WorkflowEngine {
         this.context.state = { ...this.context.state, ...output }
       }
 
+      // Registrar métricas do step
+      metricsCollector.recordStep(
+        this.context.executionId,
+        node.id,
+        'completed',
+        tokens,
+        cost,
+        node.type === 'llm' ? node.config.model : undefined
+      )
+
       // Marcar step como completed
       await addExecutionStep({
         executionId: this.context.executionId,
@@ -295,7 +332,18 @@ export class WorkflowEngine {
 
       return { output, tokens, cost }
     } catch (error) {
-      console.error(`[WorkflowEngine] Erro no node ${node.id}:`, error)
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
+
+      // Registrar erro nas métricas
+      metricsCollector.recordStep(
+        this.context.executionId,
+        node.id,
+        'failed',
+        undefined,
+        undefined,
+        undefined,
+        errorMessage
+      )
 
       // Marcar step como failed
       await addExecutionStep({
@@ -304,7 +352,7 @@ export class WorkflowEngine {
         stepType: node.type,
         stepIndex: this.context.stepIndex.toString(),
         status: 'failed',
-        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        error: errorMessage,
       })
 
       throw error
@@ -331,6 +379,9 @@ export class WorkflowEngine {
     }
 
     const result = await tool.invoke(toolInput)
+
+    // Log da chamada da tool
+    logToolCall(toolName, toolInput, result)
 
     // Tentar parsear resultado como JSON
     try {
@@ -369,6 +420,9 @@ export class WorkflowEngine {
     const totalTokens = inputTokens + outputTokens
 
     const cost = calculateCost(model, inputTokens, outputTokens)
+
+    // Log da chamada LLM
+    logLLMCall(model, totalTokens, cost)
 
     return {
       output: response.content,
