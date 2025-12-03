@@ -162,19 +162,22 @@ export async function processSpedForRag(
       }
 
       // Gerar markdown resumo
+      // Drizzle date() retorna string, não Date
+      const periodStartStr = String(spedFile.periodStart)
+      const periodEndStr = String(spedFile.periodEnd)
+        
       const summaryMarkdown = generateSpedSummaryMarkdown({
         fileName: spedFile.fileName,
         cnpj: spedFile.cnpj,
         companyName: spedFile.companyName,
-        periodStart: spedFile.periodStart.toISOString(),
-        periodEnd: spedFile.periodEnd.toISOString(),
+        periodStart: periodStartStr,
+        periodEnd: periodEndStr,
         fileType: spedFile.fileType,
         stats: {
           accounts: accounts.length,
           balances: balances.length,
           entries: entries.length,
-          items: items.length,
-          errors: 0
+          items: items.length
         },
         sampleAccounts: accounts.slice(0, 50).map(a => ({
           accountCode: a.accountCode,
@@ -189,19 +192,20 @@ export async function processSpedForRag(
       })
 
       // Criar template
+      const templateTitle = `SPED ${spedFile.fileType.toUpperCase()} - ${spedFile.companyName}`;
       [existingTemplate] = await db
         .insert(templates)
         .values({
           documentFileId: docFile.id,
           organizationId: spedFile.organizationId,
           createdBy: spedFile.uploadedBy,
-          title: `SPED ${spedFile.fileType.toUpperCase()} - ${spedFile.companyName}`,
+          title: templateTitle,
           markdown: summaryMarkdown,
           metadata: {
             cnpj: spedFile.cnpj,
             companyName: spedFile.companyName,
-            periodStart: spedFile.periodStart.toISOString(),
-            periodEnd: spedFile.periodEnd.toISOString(),
+            periodStart: periodStartStr,
+            periodEnd: periodEndStr,
             fileType: spedFile.fileType,
             accountsCount: accounts.length,
             balancesCount: balances.length,
