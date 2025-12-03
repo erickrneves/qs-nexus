@@ -65,9 +65,16 @@ export default function UsersPage() {
         fetch('/api/organizations'),
       ])
 
+      console.log('📊 Users Response:', usersRes.status, usersRes.ok)
+      
       if (usersRes.ok) {
         const data = await usersRes.json()
+        console.log('📊 Users Data:', data)
         setUsers(data.users || [])
+      } else {
+        const error = await usersRes.json()
+        console.error('❌ Users Error:', error)
+        toast.error(`Erro ao carregar usuários: ${error.error || 'Erro desconhecido'}`)
       }
 
       if (statsRes.ok) {
