@@ -211,7 +211,7 @@ export async function createUserWithMembership(
         email: data.email,
         password: hashedPassword,
         name: data.name,
-        globalRole: data.globalRole || 'viewer',
+        globalRole: data.globalRole || null,
         isActive: data.isActive ?? true,
       })
       .returning()

@@ -51,6 +51,7 @@ export default function UsersPage() {
   const [organizations, setOrganizations] = useState<Array<{ id: string; name: string }>>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
@@ -147,6 +148,16 @@ export default function UsersPage() {
     }
   }
 
+  const handleEditUser = (user: User) => {
+    setEditingUser(user)
+    setIsDialogOpen(true)
+  }
+
+  const handleNewUser = () => {
+    setEditingUser(null)
+    setIsDialogOpen(true)
+  }
+
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -173,7 +184,7 @@ export default function UsersPage() {
             Gerencie usuários e permissões de acesso ao sistema
           </p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)}>
+        <Button onClick={handleNewUser}>
           <UserPlus className="h-4 w-4 mr-2" />
           Novo Usuário
         </Button>
@@ -304,7 +315,12 @@ export default function UsersPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" title="Editar">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            title="Editar"
+                            onClick={() => handleEditUser(user)}
+                          >
                             <Edit2 className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="icon" title="Gerenciar organizações">
@@ -344,6 +360,7 @@ export default function UsersPage() {
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         onSuccess={loadData}
+        user={editingUser}
         organizations={organizations}
         currentUserGlobalRole={((session?.user as any)?.globalRole as GlobalRole) || 'viewer'}
       />

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/config'
 import { db } from '@/lib/db'
 import { ragUsers } from '@/lib/db/schema/rag-users'
-import { eq } from 'drizzle-orm'
+import { organizationMembers } from '@/lib/db/schema/organizations'
+import { eq, and } from 'drizzle-orm'
 import { updateUserSchema } from '@/lib/schemas/user-schemas'
 import { getUserWithOrganizations, canManageUser, deactivateUser } from '@/lib/services/user-service'
 import { hasPermission } from '@/lib/auth/permissions'
@@ -73,8 +74,7 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const data = updateUserSchema.parse(body)
-
+    
     // Verificar se pode gerenciar este usuário
     const canEdit = await canManageUser(session.user.id, params.id, session.user.organizationId || undefined)
     
@@ -86,25 +86,69 @@ export async function PATCH(
     }
 
     // Se não é super_admin, não pode alterar globalRole
-    if (data.globalRole && session.user.globalRole !== 'super_admin') {
+    if (body.globalRole && session.user.globalRole !== 'super_admin') {
       return NextResponse.json(
         { error: 'Apenas super admin pode alterar role global' },
         { status: 403 }
       )
     }
 
-    // Atualizar usuário
+    // Atualizar dados básicos do usuário
+    const updateData: any = {
+      updatedAt: new Date(),
+    }
+    
+    if (body.name) updateData.name = body.name
+    if (body.globalRole !== undefined) updateData.globalRole = body.globalRole || null
+    if (body.isActive !== undefined) updateData.isActive = body.isActive
+
     const [updated] = await db
       .update(ragUsers)
-      .set({
-        ...data,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(ragUsers.id, params.id))
       .returning()
 
     if (!updated) {
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
+    }
+
+    // Se organizationId e orgRole fornecidos, atualizar membership
+    if (body.organizationId && body.orgRole) {
+      // Verificar se já existe membership nesta org
+      const [existingMembership] = await db
+        .select()
+        .from(organizationMembers)
+        .where(
+          and(
+            eq(organizationMembers.userId, params.id),
+            eq(organizationMembers.organizationId, body.organizationId)
+          )
+        )
+        .limit(1)
+
+      if (existingMembership) {
+        // Atualizar role existente
+        await db
+          .update(organizationMembers)
+          .set({
+            role: body.orgRole,
+            isActive: true,
+            updatedAt: new Date(),
+          })
+          .where(eq(organizationMembers.id, existingMembership.id))
+      } else {
+        // Criar novo membership
+        await db
+          .insert(organizationMembers)
+          .values({
+            organizationId: body.organizationId,
+            userId: params.id,
+            role: body.orgRole,
+            invitedBy: session.user.id,
+            invitedAt: new Date(),
+            isActive: true,
+          })
+      }
     }
 
     // Buscar user completo

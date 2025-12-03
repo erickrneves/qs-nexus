@@ -57,6 +57,7 @@ interface UserFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
+  user?: any | null
   currentUserGlobalRole: GlobalRole
   organizations: Organization[]
 }
@@ -65,6 +66,7 @@ export function UserFormDialog({
   open,
   onOpenChange,
   onSuccess,
+  user,
   currentUserGlobalRole,
   organizations,
 }: UserFormDialogProps) {
@@ -77,6 +79,7 @@ export function UserFormDialog({
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const isSuperAdmin = currentUserGlobalRole === 'super_admin'
+  const isEditing = !!user
   
   // Verificar se a organização selecionada é QS Consultoria
   const selectedOrg = organizations.find((org) => org.id === organizationId)
@@ -85,17 +88,36 @@ export function UserFormDialog({
   // Definir quais roles globais estão disponíveis
   const availableGlobalRoles = isQSConsultoria ? globalRolesQS : globalRolesClient
 
-  // Reset form quando abrir/fechar
+  // Preencher form quando abrir para edição ou resetar quando criar novo
   useEffect(() => {
     if (open) {
-      setName('')
-      setEmail('')
-      setPassword('')
-      setGlobalRole('')
-      setOrganizationId('')
-      setOrgRole('user_fiscal')
+      if (user) {
+        // Modo edição: preencher com dados do usuário
+        setName(user.name || '')
+        setEmail(user.email || '')
+        setPassword('') // Senha vazia em edição
+        setGlobalRole(user.globalRole || '')
+        
+        // Preencher organização (primeira ativa)
+        if (user.organizations && user.organizations.length > 0) {
+          const firstOrg = user.organizations[0]
+          setOrganizationId(firstOrg.id)
+          setOrgRole(firstOrg.role || 'user_fiscal')
+        } else {
+          setOrganizationId('')
+          setOrgRole('user_fiscal')
+        }
+      } else {
+        // Modo criar: limpar form
+        setName('')
+        setEmail('')
+        setPassword('')
+        setGlobalRole('')
+        setOrganizationId('')
+        setOrgRole('user_fiscal')
+      }
     }
-  }, [open])
+  }, [open, user])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -105,11 +127,11 @@ export function UserFormDialog({
       toast.error('Nome deve ter pelo menos 2 caracteres')
       return
     }
-    if (!email || !email.includes('@')) {
+    if (!isEditing && (!email || !email.includes('@'))) {
       toast.error('Email inválido')
       return
     }
-    if (!password || password.length < 6) {
+    if (!isEditing && (!password || password.length < 6)) {
       toast.error('Senha deve ter pelo menos 6 caracteres')
       return
     }
@@ -120,31 +142,44 @@ export function UserFormDialog({
 
     setIsSubmitting(true)
     try {
-      const response = await fetch('/api/users', {
-        method: 'POST',
+      const method = isEditing ? 'PATCH' : 'POST'
+      const url = isEditing ? `/api/users/${user.id}` : '/api/users'
+      
+      const payload: any = {
+        name,
+        organizationId,
+        orgRole,
+        isActive: true,
+      }
+      
+      // Apenas para criação
+      if (!isEditing) {
+        payload.email = email
+        payload.password = password
+      }
+      
+      // GlobalRole (apenas para super_admin ou se definido)
+      if (globalRole) {
+        payload.globalRole = globalRole
+      }
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-          globalRole: globalRole || undefined,
-          organizationId,
-          orgRole,
-          isActive: true,
-        }),
+        body: JSON.stringify(payload),
       })
 
       if (response.ok) {
-        toast.success('Usuário criado com sucesso!')
+        toast.success(isEditing ? 'Usuário atualizado com sucesso!' : 'Usuário criado com sucesso!')
         onOpenChange(false)
         onSuccess()
       } else {
         const error = await response.json()
-        toast.error(error.error || 'Erro ao criar usuário')
+        toast.error(error.error || `Erro ao ${isEditing ? 'atualizar' : 'criar'} usuário`)
       }
     } catch (error) {
-      console.error('Error creating user:', error)
-      toast.error('Erro ao criar usuário')
+      console.error('Error saving user:', error)
+      toast.error(`Erro ao ${isEditing ? 'atualizar' : 'criar'} usuário`)
     } finally {
       setIsSubmitting(false)
     }
@@ -159,9 +194,9 @@ export function UserFormDialog({
               <UserPlus className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <DialogTitle>Novo Usuário</DialogTitle>
+              <DialogTitle>{isEditing ? 'Editar Usuário' : 'Novo Usuário'}</DialogTitle>
               <DialogDescription>
-                Adicione um novo usuário ao sistema
+                {isEditing ? 'Atualize as informações do usuário.' : 'Adicione um novo usuário ao sistema'}
               </DialogDescription>
             </div>
           </div>
@@ -179,28 +214,43 @@ export function UserFormDialog({
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="usuario@exemplo.com"
-              />
-            </div>
+            {!isEditing && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="usuario@exemplo.com"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha *</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
-                autoComplete="new-password"
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Senha *</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                    autoComplete="new-password"
+                  />
+                </div>
+              </>
+            )}
+
+            {isEditing && (
+              <div className="rounded-md bg-muted p-3">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Email:</strong> {user.email}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Email e senha não podem ser alterados aqui
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="organizationId">Organização *</Label>
@@ -293,7 +343,7 @@ export function UserFormDialog({
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Criando...' : 'Criar Usuário'}
+              {isSubmitting ? 'Salvando...' : (isEditing ? 'Salvar Alterações' : 'Criar Usuário')}
             </Button>
           </DialogFooter>
         </form>

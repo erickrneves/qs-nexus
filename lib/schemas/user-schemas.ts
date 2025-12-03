@@ -24,10 +24,10 @@ export const createUserSchema = z.object({
   password: z
     .string()
     .min(6, 'Senha deve ter pelo menos 6 caracteres'),
-  globalRole: z.enum(globalRoles).default('viewer'),
+  globalRole: z.enum(globalRoles).optional(),
   organizationId: z.string().uuid('Organization ID inválido').optional(),
-  orgRole: z.enum(orgRoles).default('viewer'),
-  isActive: z.boolean().default(true),
+  orgRole: z.enum(orgRoles).optional(),
+  isActive: z.boolean().optional(),
 })
 
 export type CreateUserInput = z.infer<typeof createUserSchema>
