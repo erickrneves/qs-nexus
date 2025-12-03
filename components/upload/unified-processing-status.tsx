@@ -81,7 +81,8 @@ const STATUS_CONFIG = {
     icon: Clock,
     label: 'Aguardando',
     color: 'text-gray-500',
-    badgeVariant: 'secondary' as const
+    badgeVariant: 'secondary' as const,
+    animate: false
   },
   processing: {
     icon: Loader2,
@@ -94,13 +95,15 @@ const STATUS_CONFIG = {
     icon: CheckCircle,
     label: 'Concluído',
     color: 'text-green-500',
-    badgeVariant: 'default' as const
+    badgeVariant: 'default' as const,
+    animate: false
   },
   failed: {
     icon: XCircle,
     label: 'Falhou',
     color: 'text-red-500',
-    badgeVariant: 'destructive' as const
+    badgeVariant: 'destructive' as const,
+    animate: false
   }
 }
 

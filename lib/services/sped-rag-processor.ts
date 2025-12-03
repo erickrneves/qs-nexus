@@ -20,7 +20,7 @@ import {
 } from '../db/schema/sped'
 import { templates, templateChunks, documentFiles } from '../db/schema/rag'
 import { eq } from 'drizzle-orm'
-import { chunkByAccounts, chunkByFinancialStatements } from './accounting-chunker'
+import { chunkByAccounts } from './accounting-chunker'
 import { generateEmbeddings } from './embedding-generator'
 import { generateSpedSummaryMarkdown } from './sped-classifier'
 
@@ -102,8 +102,7 @@ export async function processSpedForRag(
     // Etapa 3: Gerar chunks inteligentes
     reportProgress(3, 'Gerando chunks contábeis...', 40)
     
-    // Combina dois tipos de chunking:
-    // 1. Por contas individuais (para buscas específicas)
+    // Gera chunks por contas individuais (para buscas específicas)
     const accountChunks = chunkByAccounts(
       accounts,
       balances,
@@ -113,18 +112,9 @@ export async function processSpedForRag(
       MAX_TOKENS
     )
 
-    // 2. Por demonstrações financeiras (para visão agregada)
-    const statementChunks = chunkByFinancialStatements(
-      accounts,
-      balances,
-      spedFile,
-      MAX_TOKENS
-    )
+    const allChunks = accountChunks
 
-    // Combina todos os chunks
-    const allChunks = [...accountChunks, ...statementChunks]
-
-    console.log(`[SPED-RAG] Chunks gerados: ${accountChunks.length} por conta, ${statementChunks.length} por demonstração`)
+    console.log(`[SPED-RAG] Chunks gerados: ${accountChunks.length} por conta`)
 
     if (allChunks.length === 0) {
       return { success: false, error: 'Nenhum chunk foi gerado' }
