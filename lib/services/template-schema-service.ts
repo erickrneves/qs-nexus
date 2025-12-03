@@ -45,7 +45,7 @@ export async function loadTemplateSchemaConfig(schemaId?: string): Promise<Templ
   return {
     id: config.id,
     name: config.name,
-    documentType: (config.documentType as 'juridico' | 'contabil' | 'geral') || 'geral',
+    documentType: (config.documentCategory as 'juridico' | 'contabil' | 'geral') || 'geral',
     fields,
     isActive: config.isActive ?? false,
     createdAt: config.createdAt,
@@ -86,7 +86,7 @@ export async function createTemplateSchemaConfig(data: {
       .update(templateSchemaConfigs)
       .set({ isActive: false })
       .where(and(
-        eq(templateSchemaConfigs.documentType, documentType),
+        eq(templateSchemaConfigs.documentCategory, documentType),
         eq(templateSchemaConfigs.isActive, true)
       ))
   }
@@ -95,7 +95,7 @@ export async function createTemplateSchemaConfig(data: {
     .insert(templateSchemaConfigs)
     .values({
       name: data.name,
-      documentType,
+      documentCategory: documentType,
       fields: data.fields as any, // JSONB
       isActive: data.isActive ?? false,
     })
@@ -107,7 +107,7 @@ export async function createTemplateSchemaConfig(data: {
   return {
     id: config.id,
     name: config.name,
-    documentType: (config.documentType as 'juridico' | 'contabil' | 'geral') || 'geral',
+    documentType: (config.documentCategory as 'juridico' | 'contabil' | 'geral') || 'geral',
     fields,
     isActive: config.isActive ?? false,
     createdAt: config.createdAt,
@@ -137,7 +137,7 @@ export async function updateTemplateSchemaConfig(
       .update(templateSchemaConfigs)
       .set({ isActive: false })
       .where(and(
-        eq(templateSchemaConfigs.documentType, documentType),
+        eq(templateSchemaConfigs.documentCategory, documentType),
         eq(templateSchemaConfigs.isActive, true)
       ))
   }
@@ -173,7 +173,7 @@ export async function updateTemplateSchemaConfig(
   return {
     id: config.id,
     name: config.name,
-    documentType: (config.documentType as 'juridico' | 'contabil' | 'geral') || 'geral',
+    documentType: (config.documentCategory as 'juridico' | 'contabil' | 'geral') || 'geral',
     fields,
     isActive: config.isActive ?? false,
     createdAt: config.createdAt,
@@ -195,7 +195,7 @@ export async function listTemplateSchemaConfigs(): Promise<TemplateSchemaConfig[
     return {
       id: config.id,
       name: config.name,
-      documentType: (config.documentType as 'juridico' | 'contabil' | 'geral') || 'geral',
+      documentType: (config.documentCategory as 'juridico' | 'contabil' | 'geral') || 'geral',
       fields,
       isActive: config.isActive ?? false,
       createdAt: config.createdAt,

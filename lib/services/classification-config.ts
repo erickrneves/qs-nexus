@@ -42,7 +42,7 @@ export async function loadConfigByDocumentType(
     .select()
     .from(classificationConfigs)
     .where(and(
-      eq(classificationConfigs.documentType, documentType),
+      eq(classificationConfigs.documentCategory, documentType),
       eq(classificationConfigs.isActive, true)
     ))
     .limit(1)
@@ -53,7 +53,7 @@ export async function loadConfigByDocumentType(
       .select()
       .from(classificationConfigs)
       .where(and(
-        eq(classificationConfigs.documentType, 'geral'),
+        eq(classificationConfigs.documentCategory, 'geral'),
         eq(classificationConfigs.isActive, true)
       ))
       .limit(1)
@@ -63,7 +63,7 @@ export async function loadConfigByDocumentType(
       return {
         id: config.id,
         name: config.name,
-        documentType: config.documentType as 'juridico' | 'contabil' | 'geral',
+        documentType: config.documentCategory as 'juridico' | 'contabil' | 'geral',
         systemPrompt: config.systemPrompt,
         modelProvider: config.modelProvider as 'openai' | 'google',
         modelName: config.modelName,
@@ -83,7 +83,7 @@ export async function loadConfigByDocumentType(
   return {
     id: config.id,
     name: config.name,
-    documentType: config.documentType as 'juridico' | 'contabil' | 'geral',
+    documentType: config.documentCategory as 'juridico' | 'contabil' | 'geral',
     systemPrompt: config.systemPrompt,
     modelProvider: config.modelProvider as 'openai' | 'google',
     modelName: config.modelName,
@@ -135,7 +135,7 @@ export async function loadClassificationConfig(configId?: string): Promise<Class
   return {
     id: config.id,
     name: config.name,
-    documentType: config.documentType as 'juridico' | 'contabil' | 'geral',
+    documentType: config.documentCategory as 'juridico' | 'contabil' | 'geral',
     systemPrompt: config.systemPrompt,
     modelProvider: config.modelProvider as 'openai' | 'google',
     modelName: config.modelName,
@@ -265,7 +265,7 @@ export async function createClassificationConfig(data: {
       .update(classificationConfigs)
       .set({ isActive: false })
       .where(and(
-        eq(classificationConfigs.documentType, data.documentType),
+        eq(classificationConfigs.documentCategory, data.documentType),
         eq(classificationConfigs.isActive, true)
       ))
   }
@@ -274,7 +274,7 @@ export async function createClassificationConfig(data: {
     .insert(classificationConfigs)
     .values({
       name: data.name,
-      documentType: data.documentType,
+      documentCategory: data.documentType,
       systemPrompt: data.systemPrompt,
       modelProvider: data.modelProvider,
       modelName: data.modelName,
@@ -290,7 +290,7 @@ export async function createClassificationConfig(data: {
   return {
     id: config.id,
     name: config.name,
-    documentType: config.documentType as 'juridico' | 'contabil' | 'geral',
+    documentType: config.documentCategory as 'juridico' | 'contabil' | 'geral',
     systemPrompt: config.systemPrompt,
     modelProvider: config.modelProvider as 'openai' | 'google',
     modelName: config.modelName,
@@ -330,7 +330,7 @@ export async function updateClassificationConfig(
       .update(classificationConfigs)
       .set({ isActive: false })
       .where(and(
-        eq(classificationConfigs.documentType, documentType),
+        eq(classificationConfigs.documentCategory, documentType),
         eq(classificationConfigs.isActive, true)
       ))
   }
@@ -368,7 +368,7 @@ export async function updateClassificationConfig(
   return {
     id: config.id,
     name: config.name,
-    documentType: config.documentType as 'juridico' | 'contabil' | 'geral',
+    documentType: config.documentCategory as 'juridico' | 'contabil' | 'geral',
     systemPrompt: config.systemPrompt,
     modelProvider: config.modelProvider as 'openai' | 'google',
     modelName: config.modelName,
@@ -390,7 +390,7 @@ export async function listClassificationConfigs(): Promise<ClassificationConfig[
   return results.map(config => ({
     id: config.id,
     name: config.name,
-    documentType: config.documentType as 'juridico' | 'contabil' | 'geral',
+    documentType: config.documentCategory as 'juridico' | 'contabil' | 'geral',
     systemPrompt: config.systemPrompt,
     modelProvider: config.modelProvider as 'openai' | 'google',
     modelName: config.modelName,
