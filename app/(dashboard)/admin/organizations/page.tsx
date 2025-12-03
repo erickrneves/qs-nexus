@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Building2, Plus, Edit2, Trash2, Users } from 'lucide-react'
+import { Building2, Plus, Edit2, Trash2, Users, X, Ban } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
 interface Organization {
@@ -109,8 +109,8 @@ export default function OrganizationsPage() {
     }
   }
 
-  const handleDeleteOrganization = async (orgId: string, orgName: string) => {
-    if (!confirm(`Tem certeza que deseja desativar a organização "${orgName}"?`)) {
+  const handleSoftDeleteOrganization = async (orgId: string, orgName: string) => {
+    if (!confirm(`❓ Desativar a organização "${orgName}"?\n\n✅ DESATIVAR (Soft Delete):\n• A organização será marcada como inativa\n• Os dados serão preservados\n• Pode ser reativada depois\n\nPressione OK para confirmar.`)) {
       return
     }
 
@@ -120,7 +120,37 @@ export default function OrganizationsPage() {
       })
 
       if (response.ok) {
-        toast.success('Organização desativada com sucesso!')
+        toast.success('✅ Organização desativada com sucesso!')
+        loadOrganizations()
+      } else {
+        const error = await response.json()
+        toast.error(error.error || 'Erro ao desativar organização')
+      }
+    } catch (error) {
+      console.error('Erro ao desativar organização:', error)
+      toast.error('Erro ao desativar organização')
+    }
+  }
+
+  const handleHardDeleteOrganization = async (orgId: string, orgName: string) => {
+    if (!confirm(`⚠️ ATENÇÃO: DELETAR PERMANENTEMENTE "${orgName}"?\n\n🗑️ DELETAR PERMANENTEMENTE (Hard Delete):\n• A organização será REMOVIDA PARA SEMPRE\n• TODOS os dados serão PERDIDOS\n• NÃO pode ser desfeito\n• Só funciona se não houver membros vinculados\n\nDigite "DELETAR" para confirmar.`)) {
+      return
+    }
+
+    // Pedir confirmação extra
+    const confirmText = prompt('⚠️ Digite "DELETAR" (em maiúsculas) para confirmar a exclusão permanente:')
+    if (confirmText !== 'DELETAR') {
+      toast.error('Operação cancelada')
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/organizations/${orgId}?hard=true`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        toast.success('🗑️ Organização deletada permanentemente!')
         loadOrganizations()
       } else {
         const error = await response.json()
@@ -276,7 +306,7 @@ export default function OrganizationsPage() {
                       {formatDate(org.createdAt)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -294,10 +324,20 @@ export default function OrganizationsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          title="Excluir"
-                          onClick={() => handleDeleteOrganization(org.id, org.name)}
+                          title="Desativar (Soft Delete) - Pode ser reativada depois"
+                          onClick={() => handleSoftDeleteOrganization(org.id, org.name)}
+                          className="text-amber-600 hover:text-amber-700 dark:text-amber-500"
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <Ban className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Deletar Permanentemente (Hard Delete) - NÃO pode ser desfeito!"
+                          onClick={() => handleHardDeleteOrganization(org.id, org.name)}
+                          className="text-destructive hover:text-red-700"
+                        >
+                          <X className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>

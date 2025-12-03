@@ -13,7 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Users, UserPlus, Search, Edit2, Building2, Shield, CheckCircle2, XCircle } from 'lucide-react'
+import { Users, UserPlus, Search, Edit2, Building2, Shield, CheckCircle2, XCircle, Ban, X } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { RoleBadge } from '@/components/users/role-badge'
 import { UserFormDialog } from '@/components/users/user-form-dialog'
@@ -91,6 +91,59 @@ export default function UsersPage() {
       toast.error('Erro ao carregar dados')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleSoftDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`❓ Desativar o usuário "${userName}"?\n\n✅ DESATIVAR (Soft Delete):\n• O usuário será marcado como inativo\n• Os dados serão preservados\n• Pode ser reativado depois\n\nPressione OK para confirmar.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        toast.success('✅ Usuário desativado com sucesso!')
+        loadData()
+      } else {
+        const error = await response.json()
+        toast.error(error.error || 'Erro ao desativar usuário')
+      }
+    } catch (error) {
+      console.error('Erro ao desativar usuário:', error)
+      toast.error('Erro ao desativar usuário')
+    }
+  }
+
+  const handleHardDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`⚠️ ATENÇÃO: DELETAR PERMANENTEMENTE "${userName}"?\n\n🗑️ DELETAR PERMANENTEMENTE (Hard Delete):\n• O usuário será REMOVIDO PARA SEMPRE\n• TODOS os dados serão PERDIDOS\n• NÃO pode ser desfeito\n\nDigite "DELETAR" para confirmar.`)) {
+      return
+    }
+
+    // Pedir confirmação extra
+    const confirmText = prompt('⚠️ Digite "DELETAR" (em maiúsculas) para confirmar a exclusão permanente:')
+    if (confirmText !== 'DELETAR') {
+      toast.error('Operação cancelada')
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/users/${userId}?hard=true`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        toast.success('🗑️ Usuário deletado permanentemente!')
+        loadData()
+      } else {
+        const error = await response.json()
+        toast.error(error.error || 'Erro ao deletar usuário')
+      }
+    } catch (error) {
+      console.error('Erro ao deletar usuário:', error)
+      toast.error('Erro ao deletar usuário')
     }
   }
 
@@ -250,9 +303,32 @@ export default function UsersPage() {
                           : 'Nunca'}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" title="Editar">
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" title="Editar">
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" title="Gerenciar organizações">
+                            <Building2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Desativar (Soft Delete) - Pode ser reativado depois"
+                            onClick={() => handleSoftDeleteUser(user.id, user.name)}
+                            className="text-amber-600 hover:text-amber-700 dark:text-amber-500"
+                          >
+                            <Ban className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Deletar Permanentemente (Hard Delete) - NÃO pode ser desfeito!"
+                            onClick={() => handleHardDeleteUser(user.id, user.name)}
+                            className="text-destructive hover:text-red-700"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))

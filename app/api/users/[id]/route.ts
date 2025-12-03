@@ -130,7 +130,8 @@ export async function PATCH(
 
 /**
  * DELETE /api/users/[id]
- * Desativa usuário (soft delete)
+ * SOFT DELETE (default): Desativa usuário (isActive = false)
+ * HARD DELETE (?hard=true): Deleta permanentemente do banco
  */
 export async function DELETE(
   request: NextRequest,
@@ -155,10 +156,39 @@ export async function DELETE(
       )
     }
 
-    // Desativar usuário
-    await deactivateUser(params.id)
+    // Parse query para verificar se é hard delete
+    const { searchParams } = new URL(request.url)
+    const hardDelete = searchParams.get('hard') === 'true'
 
-    return NextResponse.json({ message: 'Usuário desativado com sucesso' })
+    // Verificar se usuário existe
+    const [user] = await db
+      .select()
+      .from(ragUsers)
+      .where(eq(ragUsers.id, params.id))
+      .limit(1)
+
+    if (!user) {
+      return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
+    }
+
+    if (hardDelete) {
+      // HARD DELETE: Deletar permanentemente
+      // Deletar permanentemente (CASCADE vai remover organizationMembers)
+      await db.delete(ragUsers).where(eq(ragUsers.id, params.id))
+
+      return NextResponse.json({
+        message: 'Usuário deletado permanentemente',
+        type: 'hard_delete',
+      })
+    } else {
+      // SOFT DELETE: Apenas desativar
+      await deactivateUser(params.id)
+
+      return NextResponse.json({
+        message: 'Usuário desativado com sucesso',
+        type: 'soft_delete',
+      })
+    }
   } catch (error) {
     console.error('Error deleting user:', error)
     return NextResponse.json({ error: 'Erro ao deletar usuário' }, { status: 500 })

@@ -98,7 +98,7 @@ export async function PATCH(
 
 /**
  * DELETE /api/organizations/[id]
- * Desativa uma organização (soft delete)
+ * SOFT DELETE: Desativa uma organização (isActive = false)
  */
 export async function DELETE(
   request: NextRequest,
@@ -114,6 +114,10 @@ export async function DELETE(
     if (!hasPermission(session.user.globalRole, 'organizations.manage')) {
       return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
     }
+
+    // Parse query para verificar se é hard delete
+    const { searchParams } = new URL(request.url)
+    const hardDelete = searchParams.get('hard') === 'true'
 
     // Verificar se não é a organização principal (QS Consultoria)
     const [org] = await db
@@ -133,20 +137,46 @@ export async function DELETE(
       )
     }
 
-    // Soft delete
-    const [deleted] = await db
-      .update(organizations)
-      .set({
-        isActive: false,
-        updatedAt: new Date(),
-      })
-      .where(eq(organizations.id, params.id))
-      .returning()
+    if (hardDelete) {
+      // HARD DELETE: Deletar permanentemente
+      // Primeiro, verificar se há usuários vinculados
+      const members = await db
+        .select()
+        .from(organizationMembers)
+        .where(eq(organizationMembers.organizationId, params.id))
+        .limit(1)
 
-    return NextResponse.json({
-      message: 'Organização desativada com sucesso',
-      organization: deleted,
-    })
+      if (members.length > 0) {
+        return NextResponse.json(
+          { error: 'Não é possível deletar permanentemente: organização possui membros vinculados' },
+          { status: 400 }
+        )
+      }
+
+      // Deletar permanentemente
+      await db.delete(organizations).where(eq(organizations.id, params.id))
+
+      return NextResponse.json({
+        message: 'Organização deletada permanentemente',
+        type: 'hard_delete',
+      })
+    } else {
+      // SOFT DELETE: Apenas desativar
+      const [deleted] = await db
+        .update(organizations)
+        .set({
+          isActive: false,
+          updatedAt: new Date(),
+        })
+        .where(eq(organizations.id, params.id))
+        .returning()
+
+      return NextResponse.json({
+        message: 'Organização desativada com sucesso',
+        type: 'soft_delete',
+        organization: deleted,
+      })
+    }
   } catch (error) {
     console.error('Error deleting organization:', error)
     return NextResponse.json({ error: 'Erro ao deletar organização' }, { status: 500 })
