@@ -386,6 +386,7 @@ export default function UsersPage() {
         onOpenChange={setIsDialogOpen}
         onSuccess={loadData}
         organizations={organizations}
+        user={editingUser}
       />
 
       <UserOrgManagerDialog
