@@ -46,7 +46,7 @@ interface Stats {
 }
 
 export default function UsersPage() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const [users, setUsers] = useState<User[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
   const [organizations, setOrganizations] = useState<Array<{ id: string; name: string }>>([])
@@ -56,6 +56,18 @@ export default function UsersPage() {
   const [isOrgDialogOpen, setIsOrgDialogOpen] = useState(false)
   const [managingOrgUser, setManagingOrgUser] = useState<User | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+
+  // DEBUG - Ver qual globalRole está chegando
+  useEffect(() => {
+    if (session?.user) {
+      console.log('🔍 SESSION DEBUG:', {
+        status,
+        email: session.user.email,
+        globalRole: (session.user as any).globalRole,
+        type: typeof (session.user as any).globalRole,
+      })
+    }
+  }, [session, status])
 
   useEffect(() => {
     loadData()
@@ -375,11 +387,7 @@ export default function UsersPage() {
         onSuccess={loadData}
         user={editingUser}
         organizations={organizations}
-        currentUserGlobalRole={(() => {
-          const role = ((session?.user as any)?.globalRole as GlobalRole) || 'viewer'
-          console.log('🔍 PROP currentUserGlobalRole being passed:', role, 'from session:', session?.user)
-          return role
-        })()}
+        currentUserGlobalRole={((session?.user as any)?.globalRole as GlobalRole) || 'viewer'}
       />
 
       <UserOrgManagerDialog
