@@ -42,24 +42,47 @@ export async function POST(request: NextRequest) {
     }
 
     const uploadedDocs = []
+    const errors: Array<{ fileName: string; error: string }> = []
 
     for (const file of files) {
       try {
+        console.log(`[UPLOAD] Processando arquivo: ${file.name}, tamanho: ${file.size}, tipo: ${file.type}`)
+        
+        // Validar extensão
+        const ext = file.name.split('.').pop()?.toLowerCase()
+        const allowedExtensions = ['pdf', 'docx', 'doc', 'txt']
+        
+        if (!ext || !allowedExtensions.includes(ext)) {
+          console.error(`[UPLOAD] Extensão não permitida: ${ext}`)
+          throw new Error(`Extensão .${ext} não é suportada. Apenas PDF, DOCX, DOC e TXT são aceitos.`)
+        }
+        
         // Gerar hash e caminho
         const hash = await calculateFileHash(file)
+        console.log(`[UPLOAD] Hash calculado: ${hash}`)
+        
         const uploadPath = getUploadPath(organizationId, file.name, hash)
+        console.log(`[UPLOAD] Upload path: ${uploadPath}`)
+        
         const fullPath = join(process.cwd(), 'public', uploadPath)
+        console.log(`[UPLOAD] Full path: ${fullPath}`)
 
         // Criar diretórios se não existirem
         const dir = fullPath.substring(0, fullPath.lastIndexOf('/'))
         await mkdir(dir, { recursive: true })
+        console.log(`[UPLOAD] Diretório criado: ${dir}`)
 
         // Salvar arquivo
         const bytes = await file.arrayBuffer()
         const buffer = Buffer.from(bytes)
         await writeFile(fullPath, buffer)
+        console.log(`[UPLOAD] Arquivo salvo em disco`)
 
         // Criar registro no banco
+        const documentType = getDocumentType(file.name)
+        const mimeType = file.type || getMimeType(file.name)
+        console.log(`[UPLOAD] Document type: ${documentType}, MIME type: ${mimeType}`)
+        
         const [doc] = await db
           .insert(documents)
           .values({
@@ -70,27 +93,56 @@ export async function POST(request: NextRequest) {
             filePath: uploadPath,
             fileSize: file.size,
             fileHash: hash,
-            mimeType: file.type || getMimeType(file.name),
-            documentType: getDocumentType(file.name),
+            mimeType: mimeType,
+            documentType: documentType,
             status: 'pending',
           })
           .returning()
 
+        console.log(`[UPLOAD] Documento salvo no BD: ${doc.id}`)
         uploadedDocs.push(doc)
       } catch (error) {
-        console.error(`Error uploading file ${file.name}:`, error)
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        console.error(`❌ [UPLOAD] Erro ao processar arquivo ${file.name}:`, error)
+        console.error('Stack trace:', error instanceof Error ? error.stack : 'N/A')
+        console.error('Tipo do erro:', typeof error)
+        console.error('Nome do erro:', error instanceof Error ? error.name : 'N/A')
+        console.error('Mensagem do erro:', errorMessage)
+        
+        errors.push({
+          fileName: file.name,
+          error: errorMessage
+        })
         // Continuar com os próximos arquivos
       }
     }
 
     if (uploadedDocs.length === 0) {
-      return NextResponse.json({ error: 'Nenhum arquivo foi processado com sucesso' }, { status: 500 })
+      const errorDetails = errors.length > 0 
+        ? errors.map(e => `${e.fileName}: ${e.error}`).join('; ')
+        : 'Nenhum arquivo foi processado com sucesso'
+      
+      console.error('[UPLOAD] Nenhum arquivo processado. Erros:', errors)
+      
+      return NextResponse.json({ 
+        error: 'Nenhum arquivo foi processado com sucesso',
+        details: errorDetails,
+        errors: errors
+      }, { status: 500 })
     }
 
-    return NextResponse.json({
+    // Se houve sucesso parcial, retorna sucesso com avisos
+    const response: any = {
       message: `${uploadedDocs.length} arquivo(s) enviado(s) com sucesso`,
       documents: uploadedDocs,
-    }, { status: 201 })
+    }
+    
+    if (errors.length > 0) {
+      response.warnings = errors
+      response.message += ` (${errors.length} arquivo(s) com erro)`
+    }
+
+    return NextResponse.json(response, { status: 201 })
   } catch (error) {
     console.error('Upload error:', error)
     return NextResponse.json({ error: 'Erro ao fazer upload' }, { status: 500 })

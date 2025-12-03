@@ -4,6 +4,7 @@ import { join } from 'path'
 import { parseCsvFile, CsvParseResult, generateCsvSummaryMarkdown } from '@/lib/services/csv-parser'
 import { db } from '@/lib/db'
 import { csvImports, csvData } from '@/lib/db/schema/sped'
+import { processCsvForRag } from '@/lib/services/csv-rag-processor'
 
 export const maxDuration = 120 // 2 minutos
 
@@ -87,6 +88,22 @@ export async function POST(request: NextRequest) {
     // Gerar resumo markdown para RAG
     const summaryMarkdown = generateCsvSummaryMarkdown(parseResult)
 
+    // Processar para RAG (classificação + chunks + embeddings) - assíncrono
+    console.log('Iniciando processamento RAG...')
+    processCsvForRag(csvImport.id, (progress) => {
+      console.log(`  [RAG] Etapa ${progress.step}/${progress.totalSteps}: ${progress.message} (${progress.progress}%)`)
+    })
+      .then(ragResult => {
+        if (ragResult.success) {
+          console.log(`RAG processado com sucesso! Template: ${ragResult.templateId}`)
+        } else {
+          console.warn(`Erro no processamento RAG: ${ragResult.error}`)
+        }
+      })
+      .catch(err => {
+        console.error('Erro no processamento RAG:', err)
+      })
+
     console.log('=== INGESTÃO CONCLUÍDA ===\n')
 
     return NextResponse.json({
@@ -98,6 +115,7 @@ export async function POST(request: NextRequest) {
       sampleRows: parseResult.rows.slice(0, 5),
       summaryMarkdown,
       errors: parseResult.errors.slice(0, 10),
+      message: 'CSV importado com sucesso. Processamento RAG em andamento...'
     })
   } catch (error) {
     console.error('Erro na ingestão CSV:', error)

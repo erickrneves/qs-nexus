@@ -16,6 +16,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { spedProcessingEvents } from '@/lib/services/sped-processing-events'
 import { generateSpedSummaryMarkdown, classifySpedDocument } from '@/lib/services/sped-classifier'
 import { notifySpedUploadComplete, notifySpedUploadFailed } from '@/lib/services/notification-service'
+import { processSpedForRag } from '@/lib/services/sped-rag-processor'
 
 export const maxDuration = 300 // 5 minutos para arquivos grandes
 
@@ -361,6 +362,54 @@ async function processSpedFileAsync(jobId: string, filePath: string, fileName: s
     } catch (classificationError) {
       console.error(`[Job ${jobId}] Erro na classificação AI (não-crítico):`, classificationError)
       // Não falha o processamento se a classificação falhar
+    }
+    
+    // Etapa 7: Gerar chunks e embeddings para RAG (95-100%)
+    try {
+      spedProcessingEvents.emit(jobId, {
+        jobId,
+        type: 'progress',
+        data: {
+          fileName,
+          status: 'saving',
+          currentStep: 5,
+          totalSteps: 5,
+          progress: 95,
+          message: 'Gerando chunks e embeddings para busca RAG...',
+        },
+      })
+      
+      console.log(`[Job ${jobId}] Iniciando processamento RAG...`)
+      
+      const ragResult = await processSpedForRag(spedFile.id, (progress) => {
+        // Atualiza progresso RAG (95-100%)
+        const overallProgress = 95 + Math.floor(progress.progress * 0.05)
+        spedProcessingEvents.emit(jobId, {
+          jobId,
+          type: 'progress',
+          data: {
+            fileName,
+            status: 'saving',
+            currentStep: 5,
+            totalSteps: 5,
+            progress: overallProgress,
+            message: progress.message,
+          },
+        })
+      })
+      
+      if (ragResult.success) {
+        console.log(`[Job ${jobId}] RAG processado com sucesso`)
+        console.log(`  - Template ID: ${ragResult.templateId}`)
+        console.log(`  - Chunks: ${ragResult.stats?.chunks || 0}`)
+        console.log(`  - Embeddings: ${ragResult.stats?.embeddings || 0}`)
+      } else {
+        console.warn(`[Job ${jobId}] Erro no processamento RAG (não-crítico): ${ragResult.error}`)
+      }
+      
+    } catch (ragError) {
+      console.error(`[Job ${jobId}] Erro no processamento RAG (não-crítico):`, ragError)
+      // Não falha o processamento se RAG falhar
     }
     
     // Concluído! (100%)

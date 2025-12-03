@@ -69,11 +69,16 @@ export async function POST(request: NextRequest) {
         const [csvImport] = await db
           .insert(csvImports)
           .values({
+            organizationId,
+            uploadedBy: session.user.id,
+            fileName: file.name,
+            filePath: uploadPath,
+            fileHash: hash,
             delimiter: ',', // Padrão, pode ser detectado depois
             encoding: 'utf-8',
             hasHeader: true,
             status: 'pending',
-          } as any) // Temporariamente ignorar tipos devido a schema antigo
+          })
           .returning()
 
         uploadedFiles.push(csvImport)

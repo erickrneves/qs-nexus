@@ -70,13 +70,18 @@ export async function POST(request: NextRequest) {
         const [spedFile] = await db
           .insert(spedFiles)
           .values({
+            organizationId,
+            uploadedBy: session.user.id,
+            fileName: file.name,
+            filePath: uploadPath,
+            fileHash: hash,
             fileType: 'ecd', // Será detectado pelo parser
             cnpj: '00000000000000', // Será extraído pelo parser
             companyName: 'A ser processado',
             periodStart: today,
             periodEnd: today,
             status: 'pending',
-          } as any) // Temporariamente ignorar tipos devido a schema antigo
+          })
           .returning()
 
         uploadedFiles.push(spedFile)
