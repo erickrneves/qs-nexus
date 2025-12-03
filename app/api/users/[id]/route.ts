@@ -75,6 +75,9 @@ export async function PATCH(
 
     const body = await request.json()
     
+    console.log('🔍 API PATCH /api/users/[id] - Data recebida:', JSON.stringify(body, null, 2))
+    console.log('🔍 Session globalRole:', session.user.globalRole)
+    
     // Verificar se pode gerenciar este usuário
     const canEdit = await canManageUser(session.user.id, params.id, session.user.organizationId || undefined)
     
@@ -86,7 +89,8 @@ export async function PATCH(
     }
 
     // Se não é super_admin, não pode alterar globalRole
-    if (body.globalRole && session.user.globalRole !== 'super_admin') {
+    if (body.globalRole !== undefined && session.user.globalRole !== 'super_admin') {
+      console.log('❌ Usuário não tem permissão para alterar globalRole')
       return NextResponse.json(
         { error: 'Apenas super admin pode alterar role global' },
         { status: 403 }
@@ -99,8 +103,13 @@ export async function PATCH(
     }
     
     if (body.name) updateData.name = body.name
-    if (body.globalRole !== undefined) updateData.globalRole = body.globalRole || null
+    if (body.globalRole !== undefined) {
+      updateData.globalRole = body.globalRole || null
+      console.log('✅ GlobalRole será atualizado para:', body.globalRole)
+    }
     if (body.isActive !== undefined) updateData.isActive = body.isActive
+
+    console.log('🔍 Updates a aplicar:', JSON.stringify(updateData, null, 2))
 
     const [updated] = await db
       .update(ragUsers)

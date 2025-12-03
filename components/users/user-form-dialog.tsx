@@ -83,7 +83,16 @@ export function UserFormDialog({
   
   // Verificar se a organização selecionada é QS Consultoria
   const selectedOrg = organizations.find((org) => org.id === organizationId)
-  const isQSConsultoria = selectedOrg?.name === 'QS Consultoria'
+  const isQSConsultoria = selectedOrg?.name?.toLowerCase().includes('qs') || false
+  
+  // DEBUG
+  console.log('🔍 User Form Debug:', {
+    organizationId,
+    selectedOrg: selectedOrg?.name,
+    isQSConsultoria,
+    isSuperAdmin,
+    currentUserGlobalRole,
+  })
   
   // Definir quais roles globais estão disponíveis
   const availableGlobalRoles = isQSConsultoria ? globalRolesQS : globalRolesClient
@@ -157,19 +166,21 @@ export function UserFormDialog({
         payload.organizationId = organizationId
         payload.orgRole = orgRole
         
-        // GlobalRole para criação (se super_admin selecionou)
-        if (isSuperAdmin && globalRole) {
-          payload.globalRole = globalRole
+        // GlobalRole para criação (sempre enviar se for super_admin, mesmo que vazio)
+        if (isSuperAdmin) {
+          // Se vazio/null, enviar null explicitamente ao invés de string vazia
+          payload.globalRole = globalRole || null
         }
       } else {
         // Para EDIÇÃO de usuário
         // GlobalRole (apenas super_admin pode editar)
-        if (isSuperAdmin && globalRole) {
-          payload.globalRole = globalRole
+        if (isSuperAdmin) {
+          payload.globalRole = globalRole || null
         }
       }
 
-      console.log('📤 Payload:', method, url, payload)
+      console.log('📤 PAYLOAD FINAL:', method, url, JSON.stringify(payload, null, 2))
+      console.log('📤 GlobalRole sendo enviado:', payload.globalRole, typeof payload.globalRole)
 
       const response = await fetch(url, {
         method,

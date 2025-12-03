@@ -126,8 +126,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Organização não encontrada' }, { status: 404 })
     }
 
+    console.log('🔍 Target Org:', targetOrg.name, targetOrg.slug)
+
     // REGRA: Super Admin e Admin Fiscal só podem ser da QS Consultoria
-    const isQSConsultoria = targetOrg.name === 'QS Consultoria'
+    const isQSConsultoria = targetOrg.slug === 'qs-consultoria' || targetOrg.name?.toLowerCase().includes('qs consultoria') || false
+    
+    console.log('🔍 isQSConsultoria:', isQSConsultoria, 'globalRole:', data.globalRole)
     
     if (!isQSConsultoria && data.globalRole && ['super_admin', 'admin_fiscal'].includes(data.globalRole)) {
       return NextResponse.json(
