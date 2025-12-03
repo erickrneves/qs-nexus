@@ -375,7 +375,11 @@ export default function UsersPage() {
         onSuccess={loadData}
         user={editingUser}
         organizations={organizations}
-        currentUserGlobalRole={((session?.user as any)?.globalRole as GlobalRole) || 'viewer'}
+        currentUserGlobalRole={(() => {
+          const role = ((session?.user as any)?.globalRole as GlobalRole) || 'viewer'
+          console.log('🔍 PROP currentUserGlobalRole being passed:', role, 'from session:', session?.user)
+          return role
+        })()}
       />
 
       <UserOrgManagerDialog

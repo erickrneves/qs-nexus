@@ -85,14 +85,15 @@ export function UserFormDialog({
   const selectedOrg = organizations.find((org) => org.id === organizationId)
   const isQSConsultoria = selectedOrg?.name?.toLowerCase().includes('qs') || false
   
-  // DEBUG
-  console.log('🔍 User Form Debug:', {
-    organizationId,
-    selectedOrg: selectedOrg?.name,
-    isQSConsultoria,
-    isSuperAdmin,
-    currentUserGlobalRole,
-  })
+  // DEBUG DETALHADO
+  console.log('🔍 ========== USER FORM DEBUG ==========')
+  console.log('🔍 currentUserGlobalRole:', currentUserGlobalRole, typeof currentUserGlobalRole)
+  console.log('🔍 isSuperAdmin:', isSuperAdmin)
+  console.log('🔍 organizationId:', organizationId)
+  console.log('🔍 selectedOrg:', selectedOrg)
+  console.log('🔍 isQSConsultoria:', isQSConsultoria)
+  console.log('🔍 Campo vai aparecer?', isSuperAdmin && organizationId)
+  console.log('🔍 ======================================')
   
   // Definir quais roles globais estão disponíveis
   const availableGlobalRoles = isQSConsultoria ? globalRolesQS : globalRolesClient
@@ -297,38 +298,63 @@ export function UserFormDialog({
               </Select>
             </div>
 
-            {isSuperAdmin && organizationId && (
-              <div className="space-y-2">
-                <Label htmlFor="globalRole">Role Global (Opcional)</Label>
-                <Select
-                  value={globalRole || undefined}
-                  onValueChange={(value: GlobalRole | '') => {
-                    setGlobalRole(value)
-                  }}
-                >
-                  <SelectTrigger id="globalRole">
-                    <SelectValue placeholder="Nenhuma - deixe em branco" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableGlobalRoles.map((role) => (
-                      <SelectItem key={role} value={role}>
-                        {roleLabels[role]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {!isQSConsultoria && (
-                  <p className="text-xs text-amber-600 dark:text-amber-500">
-                    ⚠️ Usuários de clientes não podem ser Super Admin ou Admin Fiscal
-                  </p>
+            <div className="space-y-2">
+              <Label htmlFor="globalRole">
+                Role Global (Opcional)
+                {!isSuperAdmin && (
+                  <span className="text-xs text-red-500 ml-2">
+                    [HIDDEN: Você não é Super Admin! currentRole={currentUserGlobalRole}]
+                  </span>
                 )}
-                {isQSConsultoria && (
-                  <p className="text-xs text-blue-600 dark:text-blue-400">
-                    ℹ️ QS Consultoria: pode criar Super Admins e Admins
-                  </p>
+                {isSuperAdmin && !organizationId && (
+                  <span className="text-xs text-amber-500 ml-2">
+                    [Selecione uma organização primeiro]
+                  </span>
                 )}
-              </div>
-            )}
+              </Label>
+              
+              {isSuperAdmin && organizationId ? (
+                <>
+                  <Select
+                    value={globalRole || undefined}
+                    onValueChange={(value: GlobalRole | '') => {
+                      setGlobalRole(value)
+                      console.log('🔍 GlobalRole selecionado:', value)
+                    }}
+                  >
+                    <SelectTrigger id="globalRole">
+                      <SelectValue placeholder="Nenhuma - deixe em branco" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableGlobalRoles.map((role) => (
+                        <SelectItem key={role} value={role}>
+                          {roleLabels[role]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Disponíveis: {availableGlobalRoles.join(', ')}
+                  </p>
+                  {!isQSConsultoria && (
+                    <p className="text-xs text-amber-600 dark:text-amber-500">
+                      ⚠️ Usuários de clientes não podem ser Super Admin ou Admin Fiscal
+                    </p>
+                  )}
+                  {isQSConsultoria && (
+                    <p className="text-xs text-blue-600 dark:text-blue-400">
+                      ℹ️ QS Consultoria: pode criar Super Admins e Admins
+                    </p>
+                  )}
+                </>
+              ) : (
+                <Input 
+                  disabled 
+                  placeholder={isSuperAdmin ? "Selecione org primeiro" : "Apenas Super Admin pode definir"} 
+                  className="bg-muted"
+                />
+              )}
+            </div>
 
             {organizationId && (
               <div className="space-y-2">
