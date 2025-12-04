@@ -92,7 +92,6 @@ export async function createSchema(data: {
   baseType: 'document' | 'sped' | 'csv'
   category?: string
   fields: FieldDefinition[]
-  classificationProfileId?: string
   enableRag?: boolean
   createdBy: string
 }) {
@@ -133,7 +132,6 @@ export async function createSchema(data: {
       fields: data.fields as any,
       sqlCreateStatement: createTableSql,
       sqlTableCreated: false,
-      classificationProfileId: data.classificationProfileId,
       enableRAG: data.enableRag ?? true,
       createdBy: data.createdBy,
     })
@@ -188,12 +186,11 @@ export async function updateSchema(
   schemaId: string,
   organizationId: string,
   data: {
-    name?: string
-    description?: string
-    fields?: FieldDefinition[]
-    classificationProfileId?: string
-    enableRag?: boolean
-    isActive?: boolean
+  name?: string
+  description?: string
+  fields?: FieldDefinition[]
+  enableRag?: boolean
+  isActive?: boolean
   }
 ) {
   const schema = await getSchema(schemaId, organizationId)
