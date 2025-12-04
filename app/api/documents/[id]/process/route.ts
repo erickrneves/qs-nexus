@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/config'
 import { db } from '@/lib/db'
 import { documents } from '@/lib/db/schema/documents'
-import { eq } from 'drizzle-orm'
+import { documentSchemas } from '@/lib/db/schema/document-schemas'
+import { eq, and } from 'drizzle-orm'
 import { hasPermission } from '@/lib/auth/permissions'
 import { processFile } from '@/lib/services/rag-processor'
 import { join } from 'path'
@@ -51,6 +52,44 @@ export async function POST(
       return NextResponse.json({ message: 'Documento já foi processado' }, { status: 200 })
     }
 
+    // Buscar schema customizado ativo para esta organização e tipo 'document'
+    // Se houver metadados com customSchemaId específico, usa ele; senão, busca um padrão
+    const body = await request.json().catch(() => ({}))
+    const customSchemaId = body.customSchemaId || (doc.metadata as any)?.customSchemaId
+
+    let activeSchema = null
+    if (customSchemaId) {
+      // Schema específico foi solicitado
+      const [schema] = await db
+        .select()
+        .from(documentSchemas)
+        .where(
+          and(
+            eq(documentSchemas.id, customSchemaId),
+            eq(documentSchemas.organizationId, doc.organizationId),
+            eq(documentSchemas.isActive, true),
+            eq(documentSchemas.sqlTableCreated, true)
+          )
+        )
+        .limit(1)
+      activeSchema = schema
+    } else {
+      // Busca schema padrão ativo para documentos
+      const [schema] = await db
+        .select()
+        .from(documentSchemas)
+        .where(
+          and(
+            eq(documentSchemas.organizationId, doc.organizationId),
+            eq(documentSchemas.baseType, 'document'),
+            eq(documentSchemas.isActive, true),
+            eq(documentSchemas.sqlTableCreated, true)
+          )
+        )
+        .limit(1)
+      activeSchema = schema
+    }
+
     // Marcar como processing
     await db
       .update(documents)
@@ -64,10 +103,19 @@ export async function POST(
     const fullPath = join(process.cwd(), 'public', doc.filePath)
     
     // Iniciar processamento em background (não aguardar)
-    processFile(fullPath, (progress) => {
-      // Callback para atualizar progresso (pode ser expandido no futuro)
-      console.log(`[${doc.fileName}] ${progress.message} (${progress.progress}%)`)
-    })
+    processFile(
+      fullPath,
+      (progress) => {
+        // Callback para atualizar progresso (pode ser expandido no futuro)
+        console.log(`[${doc.fileName}] ${progress.message} (${progress.progress}%)`)
+      },
+      {
+        documentId: doc.id,
+        organizationId: doc.organizationId,
+        uploadedBy: doc.uploadedBy,
+        customSchemaId: activeSchema?.id
+      }
+    )
       .then(async (result) => {
         if (result.success) {
           await db

@@ -18,8 +18,9 @@ import { generateEmbeddings } from './embedding-generator'
 import { storeTemplate, storeChunks } from './store-embeddings'
 import { db } from '../db/index'
 import { documentFiles } from '../db/schema/rag'
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { convertDocument } from './document-converter'
+import { insertIntoCustomTable } from './dynamic-data-extractor'
 
 const PROJECT_ROOT = process.cwd()
 const __filename = fileURLToPath(import.meta.url)
@@ -45,12 +46,28 @@ export interface ProcessingProgress {
 export type ProgressCallback = (progress: ProcessingProgress) => void
 
 /**
+ * Opções para processamento de arquivo
+ */
+export interface ProcessFileOptions {
+  /** ID do documento na tabela documents (se aplicável) */
+  documentId?: string
+  /** ID da organização (se aplicável) */
+  organizationId?: string
+  /** ID do usuário que fez upload (se aplicável) */
+  uploadedBy?: string
+  /** ID do schema customizado para usar (se aplicável) */
+  customSchemaId?: string
+}
+
+/**
  * Processa um arquivo completo através do pipeline RAG
+ * Opcionalmente salva dados em tabela customizada se schema for fornecido
  */
 export async function processFile(
   filePath: string,
-  onProgress?: ProgressCallback
-): Promise<{ success: boolean; error?: string }> {
+  onProgress?: ProgressCallback,
+  options?: ProcessFileOptions
+): Promise<{ success: boolean; error?: string; templateId?: string }> {
   const normalizedPath = normalizeFilePath(filePath, PROJECT_ROOT)
   const fileName = filePath.split('/').pop() || normalizedPath
   const totalSteps = 6 // process, filter, classify, chunk, embed, store
@@ -170,6 +187,35 @@ export async function processFile(
 
     reportProgress(3, 'Classificação concluída', 60)
 
+    // ======================================================================
+    // Integração com Tabelas Dinâmicas
+    // Se existe schema customizado E organizationId, inserir dados estruturados
+    // ======================================================================
+    if (options?.customSchemaId && options?.organizationId && options?.uploadedBy) {
+      try {
+        reportProgress(3, 'Salvando em tabela customizada...', 62)
+
+        await insertIntoCustomTable(
+          options.customSchemaId,
+          classification, // Dados extraídos pela IA
+          {
+            organizationId: options.organizationId,
+            documentId: options.documentId,
+            processedDocumentId: templateId,
+            extractedBy: options.uploadedBy,
+            sourceFilePath: normalizedPath,
+            confidenceScore: (classification as any)._cost ? 0.95 : 0.85 // Ajustar baseado em disponibilidade de métricas
+          }
+        )
+
+        reportProgress(3, 'Dados salvos em tabela customizada', 65)
+      } catch (schemaError) {
+        // Log error mas NÃO falha o processamento RAG
+        console.warn(`[RAG-PROCESSOR] Erro ao salvar em tabela customizada (continuando RAG):`, schemaError)
+        reportProgress(3, 'Aviso: erro ao salvar em tabela customizada', 65)
+      }
+    }
+
     // Etapa 4: Gerar chunks
     reportProgress(4, 'Gerando chunks...', 70)
     const chunks = chunkMarkdown(cleanedMarkdown, MAX_TOKENS)
@@ -209,7 +255,7 @@ export async function processFile(
 
     reportProgress(6, 'Processamento concluído', 100, 'completed')
 
-    return { success: true }
+    return { success: true, templateId }
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error)
     console.error(`[RAG-PROCESSOR] Erro ao processar ${fileName}:`, errorMsg)

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { DocumentSchemaBuilder } from '@/components/admin/document-schema-builder'
 import { Plus, FileText, Database, Table, Settings, Trash2, Eye } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'react-hot-toast'
 
 interface DocumentSchema {
   id: string
@@ -28,7 +28,6 @@ export default function DocumentSchemasPage() {
   const [schemas, setSchemas] = useState<DocumentSchema[]>([])
   const [loading, setLoading] = useState(true)
   const [showBuilder, setShowBuilder] = useState(false)
-  const { toast } = useToast()
 
   useEffect(() => {
     loadSchemas()
@@ -67,19 +66,12 @@ export default function DocumentSchemasPage() {
 
       const data = await res.json()
       
-      toast({
-        title: 'Sucesso!',
-        description: `Schema "${schemaData.name}" criado. Tabela "${data.tableName}" foi criada no banco.`
-      })
+      toast.success(`Schema "${schemaData.name}" criado! Tabela "${data.tableName}" foi criada no banco.`)
 
       setShowBuilder(false)
       loadSchemas()
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao criar schema',
-        description: error.message
-      })
+      toast.error(`Erro ao criar schema: ${error.message}`)
       throw error
     }
   }
@@ -96,18 +88,11 @@ export default function DocumentSchemasPage() {
 
       if (!res.ok) throw new Error('Erro ao desativar')
 
-      toast({
-        title: 'Schema desativado',
-        description: 'O schema foi desativado com sucesso'
-      })
+      toast.success('Schema desativado com sucesso')
 
       loadSchemas()
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: error.message
-      })
+      toast.error(error.message || 'Erro ao desativar schema')
     }
   }
 
@@ -268,15 +253,19 @@ export default function DocumentSchemasPage() {
                             variant="outline"
                             size="sm"
                             className="flex-1"
+                            onClick={() => window.location.href = `/admin/document-schemas/${schema.id}/records`}
+                          >
+                            <Database className="h-4 w-4 mr-2" />
+                            Ver Dados ({schema.documentsProcessed || 0})
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => {
-                              toast({
-                                title: 'Preview',
-                                description: `Campos: ${schema.fields.map((f: any) => f.displayName).join(', ')}`
-                              })
+                              toast.success(`Campos: ${schema.fields.map((f: any) => f.displayName).join(', ')}`)
                             }}
                           >
-                            <Eye className="h-4 w-4 mr-2" />
-                            Ver Campos
+                            <Eye className="h-4 w-4" />
                           </Button>
                           {schema.isActive && (
                             <Button

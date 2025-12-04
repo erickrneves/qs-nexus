@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { FileUpload } from '@/components/upload/file-upload'
 import { ProcessingProgress } from '@/components/upload/processing-progress'
 import { SpedProcessingProgress } from '@/components/upload/sped-processing-progress'
+import { SchemaSelector } from '@/components/upload/schema-selector'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -31,6 +32,7 @@ interface IngestResult {
 export default function UploadPage() {
   const { currentOrg } = useOrganization()
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [selectedSchemaId, setSelectedSchemaId] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [jobId, setJobId] = useState<string | null>(null)
@@ -39,6 +41,11 @@ export default function UploadPage() {
   const handleFilesSelected = (files: File[]) => {
     setSelectedFiles(files)
     setIngestResults([])
+    setSelectedSchemaId(null) // Reset schema quando mudar arquivos
+  }
+
+  const handleSchemaSelect = (schemaId: string | null) => {
+    setSelectedSchemaId(schemaId)
   }
 
   const handleJobComplete = useCallback(() => {
@@ -84,11 +91,17 @@ export default function UploadPage() {
       setIsProcessing(true)
       const documentIds = uploadData.documents.map((doc: any) => doc.id)
       
-      // Processar cada documento
+      // Processar cada documento (com schema se selecionado)
       for (const docId of documentIds) {
         try {
+          const processBody = selectedSchemaId 
+            ? JSON.stringify({ customSchemaId: selectedSchemaId })
+            : undefined
+            
           await fetch(`/api/documents/${docId}/process`, {
             method: 'POST',
+            headers: selectedSchemaId ? { 'Content-Type': 'application/json' } : {},
+            body: processBody,
           })
         } catch (err) {
           console.error(`Erro ao processar documento ${docId}:`, err)
@@ -348,6 +361,16 @@ export default function UploadPage() {
                 acceptedTypes={['.pdf', '.docx', '.doc', '.txt']}
                 maxFiles={20}
               />
+
+              {/* Schema Selector - aparece quando arquivos forem selecionados */}
+              {selectedFiles.length > 0 && (
+                <SchemaSelector
+                  fileName={selectedFiles[0]?.name || ''}
+                  baseType="document"
+                  onSchemaSelect={handleSchemaSelect}
+                  className="mt-4"
+                />
+              )}
 
               <Button
                 onClick={handleDocumentUpload}
