@@ -41,11 +41,7 @@ export default function DocumentSchemasPage() {
       const data = await res.json()
       setSchemas(data.schemas || [])
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: error.message
-      })
+      toast.error(error.message || 'Erro ao carregar schemas')
     } finally {
       setLoading(false)
     }
