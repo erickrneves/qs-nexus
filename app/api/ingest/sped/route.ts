@@ -31,9 +31,9 @@ export async function POST(request: NextRequest) {
 
     // Validar extensão
     const fileName = file.name.toLowerCase()
-    if (!fileName.endsWith('.txt') && !fileName.endsWith('.sped')) {
+    if (!fileName.endsWith('.txt') && !fileName.endsWith('.sped') && !fileName.endsWith('.csv')) {
       return NextResponse.json(
-        { error: 'Formato inválido. Envie um arquivo .txt ou .sped' },
+        { error: 'Formato inválido. Envie um arquivo .txt, .csv ou .sped' },
         { status: 400 }
       )
     }

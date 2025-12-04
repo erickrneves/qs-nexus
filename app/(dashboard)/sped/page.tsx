@@ -463,10 +463,10 @@ export default function SpedPage() {
         onOpenChange={setIsUploadDialogOpen}
         onSuccess={() => window.location.reload()}
         documentType="sped"
-        acceptedFileTypes=".txt"
+        acceptedFileTypes=".txt,.csv"
         maxSizeMB={200}
         title="Upload de Arquivos SPED"
-        description="Envie arquivos SPED (ECD, ECF, EFD) para processamento"
+        description="Envie arquivos SPED (ECD, ECF, EFD) em formato TXT ou CSV para processamento"
       />
     </div>
   )

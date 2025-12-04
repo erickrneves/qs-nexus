@@ -44,10 +44,10 @@ export async function POST(request: NextRequest) {
 
     for (const file of files) {
       try {
-        // Validar extensão (SPED são arquivos .txt)
+        // Validar extensão (SPED são arquivos .txt ou .csv)
         const ext = file.name.split('.').pop()?.toLowerCase()
-        if (ext !== 'txt') {
-          console.error(`File ${file.name} rejected: must be .txt`)
+        if (ext !== 'txt' && ext !== 'csv') {
+          console.error(`File ${file.name} rejected: must be .txt or .csv`)
           continue
         }
 
