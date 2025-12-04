@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/config'
 import { db } from '@/lib/db'
 import { documents } from '@/lib/db/schema/documents'
+import { eq } from 'drizzle-orm'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
+import { existsSync } from 'fs'
 import { hasPermission } from '@/lib/auth/permissions'
 import { calculateFileHash, getDocumentType, getMimeType } from '@/lib/utils/file-upload'
 import { getUploadPath, sanitizeFileName } from '@/lib/utils/storage-path'
+import { processFile } from '@/lib/services/rag-processor'
 
 /**
  * POST /api/documents/upload
@@ -69,14 +72,25 @@ export async function POST(request: NextRequest) {
 
         // Criar diretórios se não existirem
         const dir = fullPath.substring(0, fullPath.lastIndexOf('/'))
+        console.log(`[UPLOAD] Criando diretório: ${dir}`)
         await mkdir(dir, { recursive: true })
-        console.log(`[UPLOAD] Diretório criado: ${dir}`)
+        
+        // Verificar se diretório foi criado
+        if (!existsSync(dir)) {
+          throw new Error(`Falha ao criar diretório: ${dir}`)
+        }
+        console.log(`[UPLOAD] Diretório criado com sucesso`)
 
         // Salvar arquivo
         const bytes = await file.arrayBuffer()
         const buffer = Buffer.from(bytes)
         await writeFile(fullPath, buffer)
-        console.log(`[UPLOAD] Arquivo salvo em disco`)
+        
+        // Verificar se arquivo foi salvo
+        if (!existsSync(fullPath)) {
+          throw new Error(`Falha ao salvar arquivo: ${fullPath}`)
+        }
+        console.log(`[UPLOAD] Arquivo salvo em disco: ${fullPath}`)
 
         // Criar registro no banco
         const documentType = getDocumentType(file.name)
@@ -101,6 +115,55 @@ export async function POST(request: NextRequest) {
 
         console.log(`[UPLOAD] Documento salvo no BD: ${doc.id}`)
         uploadedDocs.push(doc)
+        
+        // Iniciar processamento assíncrono em background
+        console.log(`[UPLOAD] Iniciando processamento em background...`)
+        processFile(
+          fullPath,
+          (progress) => {
+            console.log(`[PROCESS ${doc.id}] [${progress.progress}%] ${progress.message}`)
+          },
+          {
+            documentId: doc.id,
+            organizationId,
+            uploadedBy: session.user.id,
+          }
+        ).then(async (result) => {
+          if (result.success) {
+            // Atualizar status para completed
+            await db
+              .update(documents)
+              .set({
+                status: 'completed',
+                processedAt: new Date(),
+                updatedAt: new Date(),
+              })
+              .where(eq(documents.id, doc.id))
+            console.log(`[PROCESS ${doc.id}] ✅ Processamento concluído`)
+          } else {
+            // Atualizar status para failed
+            await db
+              .update(documents)
+              .set({
+                status: 'failed',
+                errorMessage: result.error || 'Erro desconhecido',
+                updatedAt: new Date(),
+              })
+              .where(eq(documents.id, doc.id))
+            console.log(`[PROCESS ${doc.id}] ❌ Processamento falhou: ${result.error}`)
+          }
+        }).catch(async (error) => {
+          console.error(`[PROCESS ${doc.id}] ❌ Erro no processamento:`, error)
+          // Atualizar status para failed
+          await db
+            .update(documents)
+            .set({
+              status: 'failed',
+              errorMessage: error instanceof Error ? error.message : 'Erro desconhecido',
+              updatedAt: new Date(),
+            })
+            .where(eq(documents.id, doc.id))
+        })
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error)
         console.error(`❌ [UPLOAD] Erro ao processar arquivo ${file.name}:`, error)

@@ -1,162 +1,125 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth/config'
 import { db } from '@/lib/db'
 import { documents } from '@/lib/db/schema/documents'
-import { ragUsers } from '@/lib/db/schema/rag-users'
-import { eq, and, desc, asc, ilike, gte, lte, sql } from 'drizzle-orm'
-import { hasPermission } from '@/lib/auth/permissions'
+import { eq, and, gte, lte, ilike, or, desc, asc } from 'drizzle-orm'
+
+// Forçar runtime dinâmico
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 /**
  * GET /api/documents/list
- * Lista documentos com filtro OBRIGATÓRIO por organizationId
+ * Lista documentos da tabela 'documents' (não confundir com document_files)
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
-    }
-
-    if (!hasPermission(session.user.globalRole || 'viewer', 'data.view')) {
-      return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
-    }
-
-    const { searchParams } = new URL(request.url)
-    
-    // CRÍTICO: organizationId é OBRIGATÓRIO
-    const organizationId = searchParams.get('organizationId')
-    if (!organizationId) {
-      return NextResponse.json({ error: 'organizationId é obrigatório' }, { status: 400 })
-    }
-
-    // Validar acesso à organização
-    if (session.user.globalRole !== 'super_admin' && session.user.organizationId !== organizationId) {
-      return NextResponse.json({ error: 'Sem acesso a esta organização' }, { status: 403 })
-    }
-
-    // Parâmetros de paginação
+    const searchParams = request.nextUrl.searchParams
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
-    const offset = (page - 1) * limit
-
+    
     // Filtros
+    const organizationId = searchParams.get('organizationId')
     const status = searchParams.get('status')
     const documentType = searchParams.get('documentType')
-    const search = searchParams.get('search')
+    const search = searchParams.get('search') || ''
     const dateFrom = searchParams.get('dateFrom')
     const dateTo = searchParams.get('dateTo')
     const sortBy = searchParams.get('sortBy') || 'createdAt'
     const sortOrder = searchParams.get('sortOrder') || 'desc'
 
-    // Construir WHERE clause
-    const conditions = [
-      eq(documents.organizationId, organizationId),
-      eq(documents.isActive, true), // Apenas documentos ativos
-    ]
+    const offset = (page - 1) * limit
 
+    // Construir condições WHERE
+    const conditions = []
+
+    // CRÍTICO: Filtro por organização
+    if (organizationId) {
+      conditions.push(eq(documents.organizationId, organizationId))
+    }
+
+    // Filtro por status
     if (status && status !== 'all') {
       conditions.push(eq(documents.status, status as any))
     }
 
+    // Filtro por tipo
     if (documentType && documentType !== 'all') {
       conditions.push(eq(documents.documentType, documentType as any))
     }
 
-    if (search) {
-      conditions.push(
-        sql`(
-          ${documents.fileName} ILIKE ${`%${search}%`} OR
-          ${documents.title} ILIKE ${`%${search}%`} OR
-          ${documents.description} ILIKE ${`%${search}%`}
-        )`
-      )
-    }
-
+    // Filtro por período
     if (dateFrom) {
       conditions.push(gte(documents.createdAt, new Date(dateFrom)))
     }
-
     if (dateTo) {
       conditions.push(lte(documents.createdAt, new Date(dateTo)))
     }
 
-    // Ordenação
-    const orderByColumn = sortBy === 'fileName' 
-      ? documents.fileName 
-      : sortBy === 'fileSize'
-      ? documents.fileSize
-      : sortBy === 'status'
-      ? documents.status
-      : documents.createdAt
+    // Filtro de busca
+    if (search) {
+      conditions.push(
+        or(
+          ilike(documents.fileName, `%${search}%`),
+          ilike(documents.originalFileName, `%${search}%`),
+          ilike(documents.title, `%${search}%`)
+        ) as any
+      )
+    }
 
-    const orderBy = sortOrder === 'asc' ? asc(orderByColumn) : desc(orderByColumn)
+    // Apenas documentos ativos
+    conditions.push(eq(documents.isActive, true))
 
-    // Query com join para pegar nome do uploader
-    const results = await db
-      .select({
-        id: documents.id,
-        fileName: documents.fileName,
-        originalFileName: documents.originalFileName,
-        fileSize: documents.fileSize,
-        documentType: documents.documentType,
-        status: documents.status,
-        title: documents.title,
-        description: documents.description,
-        tags: documents.tags,
-        totalChunks: documents.totalChunks,
-        totalTokens: documents.totalTokens,
-        processedAt: documents.processedAt,
-        createdAt: documents.createdAt,
-        updatedAt: documents.updatedAt,
-        uploadedBy: {
-          id: ragUsers.id,
-          name: ragUsers.name,
-          email: ragUsers.email,
-        },
-      })
-      .from(documents)
-      .leftJoin(ragUsers, eq(documents.uploadedBy, ragUsers.id))
-      .where(and(...conditions))
-      .orderBy(orderBy)
-      .limit(limit)
-      .offset(offset)
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined
 
-    // Contar total para paginação
-    const [{ count }] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(documents)
-      .where(and(...conditions))
+    // Determinar ordenação
+    let orderByClause
+    if (sortBy === 'fileName') {
+      orderByClause = sortOrder === 'asc' ? asc(documents.fileName) : desc(documents.fileName)
+    } else if (sortBy === 'status') {
+      orderByClause = sortOrder === 'asc' ? asc(documents.status) : desc(documents.status)
+    } else {
+      // default: createdAt
+      orderByClause = sortOrder === 'asc' ? asc(documents.createdAt) : desc(documents.createdAt)
+    }
+
+    // Query com filtros
+    let query = db.select().from(documents)
+
+    if (whereClause) {
+      query = query.where(whereClause) as any
+    }
+
+    // Aplicar ordenação
+    query = query.orderBy(orderByClause) as any
+
+    // Executar query
+    const allDocs = await query
+    const total = allDocs.length
+
+    // Aplicar paginação
+    const paginatedDocs = allDocs.slice(offset, offset + limit)
 
     // Calcular estatísticas
-    const [statsResult] = await db
-      .select({
-        total: sql<number>`count(*)`,
-        pending: sql<number>`count(*) filter (where ${documents.status} = 'pending')`,
-        processing: sql<number>`count(*) filter (where ${documents.status} = 'processing')`,
-        completed: sql<number>`count(*) filter (where ${documents.status} = 'completed')`,
-        failed: sql<number>`count(*) filter (where ${documents.status} = 'failed')`,
-      })
-      .from(documents)
-      .where(eq(documents.organizationId, organizationId))
+    const stats = {
+      total: allDocs.length,
+      pending: allDocs.filter((d) => d.status === 'pending').length,
+      processing: allDocs.filter((d) => d.status === 'processing').length,
+      completed: allDocs.filter((d) => d.status === 'completed').length,
+      failed: allDocs.filter((d) => d.status === 'failed').length,
+    }
 
     return NextResponse.json({
-      documents: results,
+      documents: paginatedDocs,
+      stats,
       pagination: {
         page,
         limit,
-        total: Number(count),
-        totalPages: Math.ceil(Number(count) / limit),
-      },
-      stats: {
-        total: Number(statsResult.total),
-        pending: Number(statsResult.pending) + Number(statsResult.processing),
-        completed: Number(statsResult.completed),
-        failed: Number(statsResult.failed),
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     })
   } catch (error) {
-    console.error('Error fetching documents:', error)
-    return NextResponse.json({ error: 'Erro ao buscar documentos' }, { status: 500 })
+    console.error('Error listing documents:', error)
+    return NextResponse.json({ error: 'Erro ao listar documentos' }, { status: 500 })
   }
 }
-

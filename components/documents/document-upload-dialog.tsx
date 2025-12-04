@@ -101,6 +101,37 @@ export function DocumentUploadDialog({
     setUploadProgress(0)
 
     try {
+      // SPED processa arquivos individualmente de forma assíncrona
+      if (documentType === 'sped') {
+        // Processar apenas o primeiro arquivo SPED
+        const file = selectedFiles[0]
+        const formData = new FormData()
+        formData.append('file', file) // Singular 'file' para /api/ingest/sped
+        
+        const response = await fetch('/api/ingest/sped', {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Erro ao fazer upload do arquivo SPED')
+        }
+
+        const data = await response.json()
+        
+        // Mensagem de sucesso com jobId para acompanhamento
+        toast.success(
+          `Upload iniciado! O arquivo será processado em segundo plano. ${data.estimatedTime ? `Tempo estimado: ${data.estimatedTime}` : ''}`,
+          { duration: 5000 }
+        )
+        
+        setSelectedFiles([])
+        onOpenChange(false)
+        onSuccess()
+        
+      } else {
+        // CSV e documentos gerais: upload em lote
       const formData = new FormData()
       selectedFiles.forEach(file => {
         formData.append('files', file)
@@ -108,10 +139,7 @@ export function DocumentUploadDialog({
       formData.append('organizationId', currentOrg.id)
       formData.append('documentType', documentType)
 
-      // Escolher endpoint baseado no tipo
-      const endpoint = documentType === 'sped' 
-        ? '/api/sped/upload' 
-        : documentType === 'csv'
+        const endpoint = documentType === 'csv'
         ? '/api/csv/upload'
         : '/api/documents/upload'
 
@@ -131,6 +159,7 @@ export function DocumentUploadDialog({
       setSelectedFiles([])
       onOpenChange(false)
       onSuccess()
+      }
     } catch (error: any) {
       console.error('Upload error:', error)
       toast.error(error.message || 'Erro ao fazer upload')
@@ -201,6 +230,15 @@ export function DocumentUploadDialog({
               </Button>
             </Label>
           </div>
+
+          {/* Aviso para SPED */}
+          {documentType === 'sped' && selectedFiles.length > 1 && (
+            <div className="rounded-md bg-amber-50 dark:bg-amber-950 p-3 border border-amber-200 dark:border-amber-800">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                ⚠️ Apenas o primeiro arquivo será processado. Arquivos SPED são processados individualmente.
+              </p>
+            </div>
+          )}
 
           {/* Lista de arquivos selecionados */}
           {selectedFiles.length > 0 && (
