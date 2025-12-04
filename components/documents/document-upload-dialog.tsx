@@ -296,8 +296,6 @@ export function DocumentUploadDialog({
               </p>
             </div>
           )}
-<<<<<<< Current (Your changes)
-=======
           
           {!currentOrg && (
             <div className="rounded-md bg-amber-50 dark:bg-amber-950 p-3 border border-amber-200 dark:border-amber-800">
@@ -306,7 +304,6 @@ export function DocumentUploadDialog({
               </p>
             </div>
           )}
->>>>>>> Incoming (Background Agent changes)
 
           {/* Lista de arquivos selecionados */}
           {selectedFiles.length > 0 && (
