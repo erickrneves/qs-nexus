@@ -78,8 +78,7 @@ COPY --from=builder /app/lib ./lib
 COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
 
 # Copiar build do Next.js
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 
 USER nextjs
 
@@ -88,5 +87,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["npm", "run", "start"]
 
