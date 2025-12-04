@@ -1,11 +1,21 @@
 import { db } from '../db'
 import { sql } from 'drizzle-orm'
+import postgres from 'postgres'
 import { getSchema } from './schema-manager'
 import { generateInsertSQL } from './table-generator'
 import type { DocumentSchemaField } from '../db/schema/document-schemas'
 
 // Alias para compatibilidade
 type FieldDefinition = DocumentSchemaField
+
+// Client postgres para raw SQL
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL not set')
+}
+const sqlClient = postgres(process.env.DATABASE_URL, {
+  max: 10,
+  ssl: { rejectUnauthorized: false }
+})
 
 /**
  * Serviço para extrair e inserir dados em tabelas dinâmicas
@@ -74,10 +84,10 @@ export async function insertIntoCustomTable(
     }
   )
   
-  // Executar INSERT
+  // Executar INSERT usando postgres client direto
   try {
-    const result = await db.execute(sql.raw(insertSQL, values))
-    const insertedRows = Array.isArray(result) ? result : (result as any).rows || []
+    const result = await sqlClient.unsafe(insertSQL, values)
+    const insertedRows = Array.isArray(result) ? result : []
     
     return {
       success: true,
@@ -141,8 +151,8 @@ export async function queryCustomTable(
     query += ` OFFSET ${options.offset}`
   }
   
-  const result = await db.execute(sql.raw(query, params))
-  const rows = Array.isArray(result) ? result : (result as any).rows || []
+  const result = await sqlClient.unsafe(query, params)
+  const rows = Array.isArray(result) ? result : []
   
   return {
     schema,
@@ -165,13 +175,13 @@ export async function getCustomTableRecord(
     throw new Error('Schema ou tabela não encontrada')
   }
   
-  const result = await db.execute(sql.raw(`
+  const result = await sqlClient.unsafe(`
     SELECT * FROM ${schema.tableName}
     WHERE id = $1 AND organization_id = $2
     LIMIT 1
-  `, [recordId, organizationId]))
+  `, [recordId, organizationId])
   
-  const rows = Array.isArray(result) ? result : (result as any).rows || []
+  const rows = Array.isArray(result) ? result : []
   
   return rows[0] || null
 }
@@ -221,8 +231,8 @@ export async function updateCustomTableRecord(
   
   params.splice(updates.length, 0, JSON.stringify(data))  // Atualiza metadata também
   
-  const result = await db.execute(sql.raw(updateSQL, params))
-  const rows = Array.isArray(result) ? result : (result as any).rows || []
+  const result = await sqlClient.unsafe(updateSQL, params)
+  const rows = Array.isArray(result) ? result : []
   
   return rows[0] || null
 }
@@ -241,10 +251,10 @@ export async function deleteCustomTableRecord(
     throw new Error('Schema ou tabela não encontrada')
   }
   
-  await db.execute(sql.raw(`
+  await sqlClient.unsafe(`
     DELETE FROM ${schema.tableName}
     WHERE id = $1 AND organization_id = $2
-  `, [recordId, organizationId]))
+  `, [recordId, organizationId])
   
   return { success: true }
 }

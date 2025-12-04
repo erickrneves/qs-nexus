@@ -2,6 +2,7 @@ import { db } from '../db'
 import { documentSchemas, type DocumentSchema, type DocumentSchemaField } from '../db/schema/document-schemas'
 import { eq, and } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
+import postgres from 'postgres'
 import {
   generateCreateTableSQL,
   validateTableName,
@@ -13,6 +14,15 @@ import {
 const customSchemas = documentSchemas
 type CustomSchema = DocumentSchema
 type FieldDefinition = DocumentSchemaField
+
+// Client postgres para raw SQL
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL not set')
+}
+const sqlClient = postgres(process.env.DATABASE_URL, {
+  max: 10,
+  ssl: { rejectUnauthorized: false }
+})
 
 /**
  * Serviço para gerenciar schemas customizados
@@ -150,9 +160,9 @@ export async function createPhysicalTable(schemaId: string, organizationId: stri
     throw new Error('SQL de criação não foi gerado')
   }
   
-  // Executar CREATE TABLE
+  // Executar CREATE TABLE usando postgres client direto
   try {
-    await db.execute(sql.raw(schema.createTableSql))
+    await sqlClient.unsafe(schema.sqlCreateStatement || '')
     
     // Atualizar registro
     await db
@@ -241,7 +251,7 @@ export async function deleteSchema(
   // Deletar tabela física se solicitado
   if (dropTable && schema.sqlTableCreated) {
     const dropSQL = generateDropTableSQL(schema.tableName)
-    await db.execute(sql.raw(dropSQL))
+    await sqlClient.unsafe(dropSQL)
   }
   
   // Deletar registro do schema
@@ -286,15 +296,15 @@ export async function checkTableExists(tableName: string): Promise<boolean> {
     return false
   }
   
-  const result = await db.execute(sql.raw(`
+  const result = await sqlClient.unsafe(`
     SELECT EXISTS (
       SELECT FROM information_schema.tables 
       WHERE table_schema = 'public' 
-      AND table_name = '${tableName}'
+      AND table_name = $1
     );
-  `))
+  `, [tableName])
   
-  const rows = Array.isArray(result) ? result : (result as any).rows || []
+  const rows = Array.isArray(result) ? result : []
   return rows.length > 0 && (rows[0] as any).exists
 }
 
