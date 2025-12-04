@@ -111,7 +111,7 @@ export async function queryCustomTable(
     throw new Error('Schema não encontrado')
   }
   
-  if (!schema.tableCreated) {
+  if (!schema.sqlTableCreated) {
     throw new Error('Tabela ainda não foi criada')
   }
   
