@@ -174,7 +174,7 @@ export function HierarchicalPreview({ articles, showStats = true }: Props) {
                                         key={`a-${aIdx}`}
                                         className="flex items-start gap-2 text-sm"
                                       >
-                                        <Badge variant="ghost" size="sm" className="font-mono">
+                                        <Badge variant="outline" size="sm" className="font-mono">
                                           {alinea.letra})
                                         </Badge>
                                         <p className="leading-relaxed flex-1">{alinea.texto}</p>
