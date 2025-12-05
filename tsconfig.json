@@ -31,11 +31,10 @@
   },
   "include": [
     "lib/**/*",
-    "scripts/**/*",
     "app/**/*",
     "components/**/*",
     "hooks/**/*",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "dist", "venv", ".next"]
+  "exclude": ["node_modules", "dist", "venv", ".next", "scripts"]
 }

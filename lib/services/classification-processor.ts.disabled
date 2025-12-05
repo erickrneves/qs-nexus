@@ -19,7 +19,7 @@ import { normalizedData } from '@/lib/db/schema/normalized-data'
 import { eq } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 import { convertDocument } from './document-converter'
-import { Classifier } from './classifier'
+import { classifyDocument } from './classifier'
 import { chunkText } from '@/lib/utils/chunking'
 import { generateEmbedding } from './openai'
 
@@ -91,7 +91,6 @@ export async function processDocumentClassification(
     }
 
     // Classificar com IA (extrair dados estruturados)
-    const classifier = new Classifier()
     let extractedData: any = null
 
     if (config.enableRAG) {
@@ -104,13 +103,12 @@ export async function processDocumentClassification(
           .limit(1)
 
         if (template) {
-          extractedData = await classifier.classifyDocument(
+          const result = await classifyDocument(
             markdown,
-            template.fields as any,
-            config.systemPrompt,
-            config.modelProvider as any,
-            config.modelName
+            config.id,
+            undefined // schemaConfigId
           )
+          extractedData = result.extractedFields
 
           // Atualizar registro JSONB com dados extraídos
           if (document.customTableRecordId && extractedData) {

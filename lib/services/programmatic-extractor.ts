@@ -252,7 +252,7 @@ export function extractMetadata(
     const match = content.match(regex)
     
     if (match && match[1]) {
-      let value = match[1].trim()
+      let value: string | number = match[1].trim()
       
       // Converter tipo
       if (rule.type === 'number') {

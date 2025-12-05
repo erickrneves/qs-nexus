@@ -35,7 +35,7 @@ async function applyMigration() {
     `)
     
     console.log('\n📊 Novas colunas criadas:')
-    console.table(result.rows)
+    console.table(result)
     
     console.log('\n🎉 Tudo pronto!')
     process.exit(0)

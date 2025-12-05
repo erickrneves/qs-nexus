@@ -8,18 +8,26 @@ export * from './normalized-data-items'
 export * from './ecd-results'
 export * from './ecd-plano-referencial'
 
-// Export document-schemas
+// Export document-schemas (selective to avoid conflicts)
 export {
   documentSchemas,
-  documentSchemasRelations,
-  insertDocumentSchemaSchema,
-  selectDocumentSchemaSchema,
+  generateZodSchemaFromFields,
 } from './document-schemas'
 
-// Export normalization-templates
+export type {
+  DocumentSchema,
+  NewDocumentSchema,
+  DocumentSchemaField,
+} from './document-schemas'
+
+// Export normalization-templates (selective to avoid conflicts)
 export {
   normalizationTemplates,
-  normalizationTemplatesRelations,
-  insertNormalizationTemplateSchema,
-  selectNormalizationTemplateSchema,
+  extractionMethodEnum,
+} from './normalization-templates'
+
+export type {
+  NormalizationTemplate,
+  NewNormalizationTemplate,
+  NormalizationField,
 } from './normalization-templates'
