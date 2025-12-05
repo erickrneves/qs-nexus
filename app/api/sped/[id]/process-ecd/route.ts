@@ -51,6 +51,8 @@ export async function POST(
       return NextResponse.json({ error: 'OrganizationId não encontrado' }, { status: 400 })
     }
 
+    const organizationId = spedFile.organizationId
+
     // 3. Extrair caminho do arquivo
     const filePath = join(process.cwd(), 'public', spedFile.filePath)
     console.log(`[PROCESS-ECD] Path: ${filePath}`)
@@ -84,7 +86,7 @@ export async function POST(
       console.log(`[PROCESS-ECD] Salvando ${result.bp.length} contas do BP...`)
       
       const bpValues = result.bp.map(conta => ({
-        organizationId: spedFile.organizationId,
+        organizationId,
         spedFileId: spedFile.id,
         normalizedDataId: null, // SPED não usa normalized_data
         codCta: conta.cod_cta,
@@ -106,7 +108,7 @@ export async function POST(
       console.log(`[PROCESS-ECD] Salvando ${result.dre.length} contas da DRE...`)
       
       const dreValues = result.dre.map(conta => ({
-        organizationId: spedFile.organizationId,
+        organizationId,
         spedFileId: spedFile.id,
         normalizedDataId: null, // SPED não usa normalized_data
         codCta: conta.cod_cta,
