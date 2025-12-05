@@ -47,6 +47,10 @@ export async function POST(
     console.log(`[PROCESS-ECD] Arquivo: ${spedFile.fileName}`)
     console.log(`[PROCESS-ECD] Organization: ${spedFile.organizationId}`)
 
+    if (!spedFile.organizationId) {
+      return NextResponse.json({ error: 'OrganizationId não encontrado' }, { status: 400 })
+    }
+
     // 3. Extrair caminho do arquivo
     const filePath = join(process.cwd(), 'public', spedFile.filePath)
     console.log(`[PROCESS-ECD] Path: ${filePath}`)
