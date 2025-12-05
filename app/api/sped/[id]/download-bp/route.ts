@@ -45,7 +45,7 @@ export async function GET(
     const buffer = generateBPExcel(bp as any, anos)
 
     // 5. Retornar arquivo
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'Content-Disposition': `attachment; filename="BP_${anos[0]}_${anos[anos.length - 1]}.xlsx"`,
