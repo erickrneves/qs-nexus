@@ -75,7 +75,7 @@ function buildFieldSchema(field: FieldDefinition): z.ZodTypeAny {
 
     case 'enum': {
       if (isEnumField(field)) {
-        if (field.enumValues.length === 0) {
+        if (!field.enumValues || field.enumValues.length === 0) {
           throw new Error(`Campo enum "${field.name}" deve ter pelo menos um valor`)
         }
         schema = z.enum(field.enumValues as [string, ...string[]])

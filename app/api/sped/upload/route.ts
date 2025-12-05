@@ -1,125 +1,141 @@
+/**
+ * API para upload de arquivos SPED
+ * Aceita: XLSX (compilados de ECD)
+ */
+
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/config'
 import { db } from '@/lib/db'
-import { spedFiles } from '@/lib/db/schema/sped'
+import { spedFiles } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
-import { hasPermission } from '@/lib/auth/permissions'
-import { calculateFileHash } from '@/lib/utils/file-upload'
-import { getUploadPath, sanitizeFileName } from '@/lib/utils/storage-path'
-import { addSpedProcessingJob } from '@/lib/queue/sped-queue'
+import { existsSync } from 'fs'
+import crypto from 'crypto'
 
-/**
- * POST /api/sped/upload
- * Upload de arquivos SPED (ECD, ECF, EFD)
- */
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
+    // 1. Autenticação
     const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    if (!hasPermission(session.user.globalRole || 'viewer', 'data.upload')) {
-      return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
-    }
-
-    const formData = await request.formData()
-    const files = formData.getAll('files') as File[]
-    const organizationId = formData.get('organizationId') as string
+    const userId = session.user.id
+    const organizationId = session.user.organizationId
 
     if (!organizationId) {
-      return NextResponse.json({ error: 'organizationId é obrigatório' }, { status: 400 })
+      return NextResponse.json({ error: 'Organização não encontrada' }, { status: 400 })
     }
 
-    if (files.length === 0) {
+    // 2. Processar FormData
+    const formData = await req.formData()
+    const file = formData.get('file') as File
+
+    if (!file) {
       return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 })
     }
 
-    // Validar acesso à organização
-    if (session.user.globalRole !== 'super_admin' && session.user.organizationId !== organizationId) {
-      return NextResponse.json({ error: 'Você não tem acesso a esta organização' }, { status: 403 })
+    console.log(`[SPED-UPLOAD] Arquivo: ${file.name}, Tamanho: ${file.size}, Tipo: ${file.type}`)
+
+    // 3. Validar extensão (apenas XLSX para ECD)
+    const fileName = file.name
+    const fileExtension = fileName.split('.').pop()?.toLowerCase()
+
+    if (fileExtension !== 'xlsx') {
+      return NextResponse.json(
+        { error: 'Apenas arquivos XLSX são aceitos para SPED ECD' },
+        { status: 400 }
+      )
     }
 
-    const uploadedFiles = []
-
-    for (const file of files) {
-      try {
-        // Validar extensão (SPED aceita TXT, CSV, Excel e ODS)
-        const ext = file.name.split('.').pop()?.toLowerCase()
-        const validExtensions = ['txt', 'csv', 'xlsx', 'xls', 'ods', 'sped']
-        if (!validExtensions.includes(ext || '')) {
-          console.error(`File ${file.name} rejected: must be .txt, .csv, .xlsx, .xls, .ods or .sped`)
-          continue
-        }
-
-        // Gerar hash e caminho
-        const hash = await calculateFileHash(file)
-        const uploadPath = getUploadPath(organizationId, file.name, hash)
-        const fullPath = join(process.cwd(), 'public', uploadPath)
-
-        // Criar diretórios
-        const dir = fullPath.substring(0, fullPath.lastIndexOf('/'))
-        await mkdir(dir, { recursive: true })
-
-        // Salvar arquivo
-        const bytes = await file.arrayBuffer()
-        const buffer = Buffer.from(bytes)
-        await writeFile(fullPath, buffer)
-
-        // Criar registro no banco (valores padrão, serão preenchidos no parser)
-        const today = new Date().toISOString().split('T')[0]
-        const [spedFile] = await db
-          .insert(spedFiles)
-          .values({
-            organizationId,
-            uploadedBy: session.user.id,
-            fileName: file.name,
-            filePath: uploadPath,
-            fileHash: hash,
-            fileType: 'ecd', // Será detectado pelo parser
-            cnpj: '00000000000000', // Será extraído pelo parser
-            companyName: 'A ser processado',
-            periodStart: today,
-            periodEnd: today,
-            status: 'pending',
-          })
-          .returning()
-
-        uploadedFiles.push(spedFile)
-
-        // Adicionar job na fila de processamento
-        try {
-          await addSpedProcessingJob({
-            spedFileId: spedFile.id,
-            filePath: uploadPath,
-            fileName: file.name,
-            organizationId,
-          })
-          console.log(`✅ Job added to queue for ${file.name}`)
-        } catch (queueError: any) {
-          console.error(`⚠️  Failed to add job to queue: ${queueError.message}`)
-          console.error(`   File uploaded but will need manual processing`)
-          // Arquivo foi salvo, mas não foi para a fila - admin pode reprocessar manualmente
-        }
-        
-      } catch (error) {
-        console.error(`Error uploading SPED file ${file.name}:`, error)
-      }
+    // 4. Validar tamanho (máximo 50MB)
+    const maxSize = 50 * 1024 * 1024 // 50MB
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { error: 'Arquivo muito grande. Tamanho máximo: 50MB' },
+        { status: 400 }
+      )
     }
 
-    if (uploadedFiles.length === 0) {
-      return NextResponse.json({ error: 'Nenhum arquivo foi processado com sucesso' }, { status: 500 })
+    // 5. Gerar hash do arquivo
+    const bytes = await file.arrayBuffer()
+    const buffer = Buffer.from(bytes)
+    const fileHash = crypto
+      .createHash('sha256')
+      .update(buffer)
+      .digest('hex')
+      .substring(0, 6)
+
+    console.log(`[SPED-UPLOAD] Hash: ${fileHash}`)
+
+    // 6. Verificar se já existe arquivo com mesmo hash (apenas AVISO, não bloqueio)
+    const existingFiles = await db
+      .select()
+      .from(spedFiles)
+      .where(eq(spedFiles.fileHash, fileHash))
+
+    let warningMessage = ''
+    if (existingFiles.length > 0) {
+      console.log(`[SPED-UPLOAD] ⚠️  Encontrados ${existingFiles.length} arquivo(s) com mesmo hash`)
+      warningMessage = `⚠️ Este arquivo pode ser uma duplicata (${existingFiles.length} upload(s) anterior(es)).`
     }
+
+    // 7. Criar diretório se não existir
+    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'sped', organizationId)
+    if (!existsSync(uploadsDir)) {
+      await mkdir(uploadsDir, { recursive: true })
+    }
+
+    // 8. Salvar arquivo no servidor
+    const timestamp = Date.now()
+    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
+    const savedFileName = `${timestamp}_${fileHash}_${sanitizedFileName}`
+    const filePath = join(uploadsDir, savedFileName)
+    const relativeFilePath = `uploads/sped/${organizationId}/${savedFileName}`
+
+    await writeFile(filePath, buffer)
+    console.log(`[SPED-UPLOAD] Arquivo salvo: ${relativeFilePath}`)
+
+    // 9. Salvar registro no banco
+    const [spedFile] = await db
+      .insert(spedFiles)
+      .values({
+        organizationId,
+        uploadedBy: userId,
+        fileName: fileName,
+        filePath: relativeFilePath,
+        fileHash: fileHash,
+        fileType: 'ecd',
+        cnpj: '00.000.000/0000-00', // Placeholder - será extraído posteriormente
+        companyName: 'A ser processado', // Será extraído posteriormente
+        periodStart: '2024-01-01', // Placeholder - será extraído posteriormente
+        periodEnd: '2024-12-31', // Placeholder - será extraído posteriormente
+        status: 'pending',
+        totalRecords: 0,
+        processedRecords: 0,
+      })
+      .returning()
+
+    console.log(`[SPED-UPLOAD] ✅ Registro criado: ${spedFile.id}`)
 
     return NextResponse.json({
-      message: `${uploadedFiles.length} arquivo(s) SPED enviado(s) com sucesso`,
-      files: uploadedFiles,
-      info: 'Processamento iniciado em background. Acompanhe o status na listagem.',
-    }, { status: 201 })
+      success: true,
+      spedFileId: spedFile.id,
+      fileName: fileName,
+      fileHash: fileHash,
+      message: warningMessage 
+        ? `Arquivo SPED importado com sucesso! ${warningMessage}`
+        : 'Arquivo SPED importado com sucesso! Clique para visualizar e processar.',
+      warning: warningMessage || null,
+    })
   } catch (error) {
-    console.error('SPED upload error:', error)
-    return NextResponse.json({ error: 'Erro ao fazer upload de SPED' }, { status: 500 })
+    console.error('[SPED-UPLOAD] ❌ Erro:', error)
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : 'Erro ao fazer upload',
+      },
+      { status: 500 }
+    )
   }
 }
-

@@ -1,66 +1,94 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import { FileUpload } from '@/components/upload/file-upload'
-import { ProcessingProgress } from '@/components/upload/processing-progress'
-import { SpedProcessingProgress } from '@/components/upload/sped-processing-progress'
-import { SchemaSelector } from '@/components/upload/schema-selector'
+import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
 import { toast } from 'react-hot-toast'
 import { useOrganization } from '@/lib/contexts/organization-context'
 import {
   Upload,
-  FileSpreadsheet,
   FileText,
-  Database,
-  CheckCircle2,
-  AlertCircle,
   Loader2,
+  CheckCircle2,
+  X,
+  Sparkles,
 } from 'lucide-react'
+import Link from 'next/link'
 
-interface IngestResult {
-  success: boolean
-  type: 'sped' | 'csv' | 'document'
-  fileName: string
-  stats?: Record<string, number>
-  errors?: Array<{ line: number; message: string }>
+interface Template {
+  id: string
+  name: string
+  description: string | null
+  isActive: boolean
 }
 
 export default function UploadPage() {
   const { currentOrg } = useOrganization()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
-  const [selectedSchemaId, setSelectedSchemaId] = useState<string | null>(null)
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
+  const [templates, setTemplates] = useState<Template[]>([])
+  const [loadingTemplates, setLoadingTemplates] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [jobId, setJobId] = useState<string | null>(null)
-  const [ingestResults, setIngestResults] = useState<IngestResult[]>([])
 
-  const handleFilesSelected = (files: File[]) => {
-    setSelectedFiles(files)
-    setIngestResults([])
-    setSelectedSchemaId(null) // Reset schema quando mudar arquivos
-  }
-
-  const handleSchemaSelect = (schemaId: string | null) => {
-    setSelectedSchemaId(schemaId)
-  }
-
-  const handleJobComplete = useCallback(() => {
-    setIsProcessing(false)
-  }, [])
-
-  // Upload tradicional (documentos para RAG)
-  const handleDocumentUpload = async () => {
-    if (selectedFiles.length === 0) {
-      toast.error('Selecione pelo menos um arquivo')
-      return
+  // Carregar templates quando arquivos forem selecionados
+  const loadTemplates = async () => {
+    if (!currentOrg?.id) return
+    
+    setLoadingTemplates(true)
+    try {
+      const res = await fetch(`/api/templates?organizationId=${currentOrg.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setTemplates(data.templates.filter((t: Template) => t.isActive))
+      }
+    } catch (error) {
+      console.error('Erro ao carregar templates:', error)
+    } finally {
+      setLoadingTemplates(false)
     }
+  }
 
-    if (!currentOrg?.id) {
-      toast.error('Nenhuma organização selecionada')
+  // Manipular seleção de arquivos
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length > 0) {
+      setSelectedFiles(files)
+      setSelectedTemplateId(null)
+      await loadTemplates()
+    }
+  }
+
+  // Drag & Drop
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    const files = Array.from(e.dataTransfer.files)
+    if (files.length > 0) {
+      setSelectedFiles(files)
+      setSelectedTemplateId(null)
+      await loadTemplates()
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+  }
+
+  // Remover arquivo
+  const removeFile = (index: number) => {
+    const newFiles = selectedFiles.filter((_, i) => i !== index)
+    setSelectedFiles(newFiles)
+    if (newFiles.length === 0) {
+      setSelectedTemplateId(null)
+      setTemplates([])
+    }
+  }
+
+  // Upload
+  const handleUpload = async () => {
+    if (!selectedFiles.length || !selectedTemplateId || !currentOrg?.id) {
+      toast.error('Complete todos os passos')
       return
     }
 
@@ -68,390 +96,233 @@ export default function UploadPage() {
 
     try {
       const formData = new FormData()
-      selectedFiles.forEach(file => {
-        formData.append('files', file)
-      })
-      // ✅ ADICIONA organizationId obrigatório
+      selectedFiles.forEach(file => formData.append('files', file))
       formData.append('organizationId', currentOrg.id)
+      formData.append('templateId', selectedTemplateId)
 
-      const uploadResponse = await fetch('/api/documents/upload', {
+      const res = await fetch('/api/documents/upload', {
         method: 'POST',
         body: formData,
       })
 
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json()
-        throw new Error(errorData.error || 'Erro ao fazer upload')
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Erro ao fazer upload')
       }
 
-      const uploadData = await uploadResponse.json()
-      toast.success(uploadData.message || `${uploadData.documents.length} arquivo(s) enviado(s)`)
-
-      // Iniciar processamento automático
-      setIsProcessing(true)
-      const documentIds = uploadData.documents.map((doc: any) => doc.id)
+      const data = await res.json()
+      toast.success(`${data.documents.length} documento(s) enviado(s)!`)
       
-      // Processar cada documento (com schema se selecionado)
-      for (const docId of documentIds) {
-        try {
-          const processBody = selectedSchemaId 
-            ? JSON.stringify({ customSchemaId: selectedSchemaId })
-            : undefined
-            
-          await fetch(`/api/documents/${docId}/process`, {
-            method: 'POST',
-            headers: selectedSchemaId ? { 'Content-Type': 'application/json' } : {},
-            body: processBody,
-          })
-        } catch (err) {
-          console.error(`Erro ao processar documento ${docId}:`, err)
-        }
-      }
-      
-      toast.success('Processamento iniciado para todos os arquivos')
-      
-      // Limpar seleção
+      // Limpar e redirecionar
       setSelectedFiles([])
+      setSelectedTemplateId(null)
+      setTemplates([])
+      
+      setTimeout(() => {
+        window.location.href = '/documentos'
+      }, 1500)
       
     } catch (error) {
-      console.error('Upload error:', error)
-      toast.error(error instanceof Error ? error.message : 'Erro ao processar arquivos')
-      setIsProcessing(false)
+      console.error('Erro:', error)
+      toast.error(error instanceof Error ? error.message : 'Erro ao processar')
     } finally {
       setIsUploading(false)
     }
   }
 
-  // Upload SPED
-  const handleSpedUpload = async () => {
-    const spedFiles = selectedFiles.filter(
-      f => f.name.toLowerCase().endsWith('.txt') || f.name.toLowerCase().endsWith('.sped')
+  if (!currentOrg) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <p className="text-center text-muted-foreground">
+              Selecione uma organização no menu lateral
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     )
-
-    if (spedFiles.length === 0) {
-      toast.error('Selecione arquivos SPED (.txt ou .sped)')
-      return
-    }
-
-    if (spedFiles.length > 1) {
-      toast.error('Por favor, selecione apenas um arquivo SPED por vez')
-      return
-    }
-
-    setIsUploading(true)
-
-    try {
-      const file = spedFiles[0]
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const response = await fetch('/api/ingest/sped', {
-        method: 'POST',
-        body: formData,
-      })
-
-      const data = await response.json()
-
-      if (response.ok && data.jobId) {
-        toast.success(`Processamento iniciado! Tempo estimado: ${data.estimatedTime}`)
-        setJobId(data.jobId)
-        setIsProcessing(true)
-      } else {
-        toast.error(`Erro: ${data.error || 'Erro desconhecido'}`)
-      }
-    } catch (error) {
-      console.error('SPED upload error:', error)
-      toast.error('Erro ao iniciar processamento SPED')
-    } finally {
-      setIsUploading(false)
-    }
-  }
-
-  // Upload CSV
-  const handleCsvUpload = async () => {
-    const csvFiles = selectedFiles.filter(f => f.name.toLowerCase().endsWith('.csv'))
-
-    if (csvFiles.length === 0) {
-      toast.error('Selecione arquivos CSV (.csv)')
-      return
-    }
-
-    setIsUploading(true)
-    const results: IngestResult[] = []
-
-    for (const file of csvFiles) {
-      try {
-        const formData = new FormData()
-        formData.append('file', file)
-
-        const response = await fetch('/api/ingest/csv', {
-          method: 'POST',
-          body: formData,
-        })
-
-        const data = await response.json()
-
-        results.push({
-          success: response.ok,
-          type: 'csv',
-          fileName: file.name,
-          stats: data.stats,
-          errors: data.errors,
-        })
-
-        if (response.ok) {
-          toast.success(`CSV importado: ${data.stats?.processedRows} linhas`)
-        } else {
-          toast.error(`Erro em ${file.name}: ${data.error}`)
-        }
-      } catch (error) {
-        results.push({
-          success: false,
-          type: 'csv',
-          fileName: file.name,
-          errors: [{ line: 0, message: 'Erro de conexão' }],
-        })
-        toast.error(`Erro ao processar ${file.name}`)
-      }
-    }
-
-    setIngestResults(results)
-    setIsUploading(false)
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 md:gap-6">
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight">Ingestão de Dados</h1>
+    <div className="flex flex-1 flex-col gap-6 max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+          <FileText className="h-8 w-8 text-primary" />
+          Upload de Documentos
+        </h1>
         <p className="text-muted-foreground">
-          Importe dados de arquivos SPED, CSV ou documentos para análise
+          Processo em 3 passos: Selecione → Escolha Template → Envie
         </p>
       </div>
 
-      <Tabs defaultValue="sped" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="sped" className="flex items-center gap-2">
-            <Database className="h-4 w-4" />
-            SPED
-          </TabsTrigger>
-          <TabsTrigger value="csv" className="flex items-center gap-2">
-            <FileSpreadsheet className="h-4 w-4" />
-            CSV
-          </TabsTrigger>
-          <TabsTrigger value="documents" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Documentos
-          </TabsTrigger>
-        </TabsList>
-
-        {/* SPED Tab */}
-        <TabsContent value="sped" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5 text-emerald-500" />
-                Importar SPED
-              </CardTitle>
-              <CardDescription>
-                Importe arquivos SPED (ECD, ECF, EFD) em múltiplos formatos para normalização e análise SQL
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <FileUpload
-                onFilesSelected={handleFilesSelected}
-                acceptedTypes={['.txt', '.csv', '.xlsx', '.xls', '.ods', '.sped']}
-                maxFiles={5}
-              />
-
-              <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">Tipos SPED</Badge>
-                  <span>ECD, ECF, EFD-ICMS/IPI, EFD-Contribuições</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">Formatos</Badge>
-                  <span>TXT, CSV, Excel (.xlsx, .xls), LibreOffice (.ods)</span>
-                </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Novo Upload</CardTitle>
+          <CardDescription>
+            Envie documentos PDF, Word ou TXT para normalização
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* PASSO 1: Selecionar Arquivos */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
+                1
               </div>
-
-              <Button
-                onClick={handleSpedUpload}
-                disabled={selectedFiles.length === 0 || isUploading || isProcessing}
-                className="w-full bg-gradient-to-r from-emerald-500 to-cyan-600 hover:from-emerald-600 hover:to-cyan-700"
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Iniciando processamento...
-                  </>
-                ) : isProcessing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Processando...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Importar SPED
-                  </>
-                )}
-              </Button>
-
-              {jobId && isProcessing && (
-                <SpedProcessingProgress 
-                  jobId={jobId} 
-                  fileName={selectedFiles[0]?.name}
-                  onComplete={handleJobComplete} 
-                />
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* CSV Tab */}
-        <TabsContent value="csv" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileSpreadsheet className="h-5 w-5 text-blue-500" />
-                Importar CSV
-              </CardTitle>
-              <CardDescription>
-                Importe planilhas CSV para análise. Delimitador detectado automaticamente.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <FileUpload onFilesSelected={handleFilesSelected} acceptedTypes={['.csv']} maxFiles={10} />
-
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Badge variant="outline">Auto-detecta</Badge>
-                <span>Delimitador (vírgula, ponto-e-vírgula, tab) e encoding</span>
-              </div>
-
-              <Button
-                onClick={handleCsvUpload}
-                disabled={selectedFiles.length === 0 || isUploading}
-                className="w-full"
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Importando CSV...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Importar CSV
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Documents Tab */}
-        <TabsContent value="documents" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-orange-500" />
-                Documentos RAG
-              </CardTitle>
-              <CardDescription>
-                Importe documentos PDF, DOCX ou TXT para vetorização e busca semântica
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <FileUpload
-                onFilesSelected={handleFilesSelected}
-                acceptedTypes={['.pdf', '.docx', '.doc', '.txt']}
-                maxFiles={20}
-              />
-
-              {/* Schema Selector - aparece quando arquivos forem selecionados */}
-              {selectedFiles.length > 0 && (
-                <SchemaSelector
-                  fileName={selectedFiles[0]?.name || ''}
-                  baseType="document"
-                  onSchemaSelect={handleSchemaSelect}
-                  className="mt-4"
-                />
-              )}
-
-              <Button
-                onClick={handleDocumentUpload}
-                disabled={selectedFiles.length === 0 || isUploading || isProcessing}
-                className="w-full"
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Enviando...
-                  </>
-                ) : isProcessing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Processando...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Processar Documentos
-                  </>
-                )}
-              </Button>
-
-              {jobId && <ProcessingProgress jobId={jobId} onComplete={handleJobComplete} />}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Resultados da Ingestão */}
-      {ingestResults.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Resultados da Importação</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {ingestResults.map((result, idx) => (
-                <div
-                  key={idx}
-                  className={`flex items-center justify-between p-3 rounded-lg border ${
-                    result.success ? 'border-green-500/30 bg-green-500/10' : 'border-red-500/30 bg-red-500/10'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    {result.success ? (
-                      <CheckCircle2 className="h-5 w-5 text-green-500" />
-                    ) : (
-                      <AlertCircle className="h-5 w-5 text-red-500" />
-                    )}
-                    <div>
-                      <p className="font-medium">{result.fileName}</p>
-                      {result.stats && (
-                        <p className="text-sm text-muted-foreground">
-                          {result.type === 'sped' && (
-                            <>
-                              {result.stats.accounts} contas • {result.stats.balances} saldos •{' '}
-                              {result.stats.entries} lançamentos
-                            </>
-                          )}
-                          {result.type === 'csv' && <>{result.stats.processedRows} linhas processadas</>}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <Badge variant={result.success ? 'default' : 'destructive'}>
-                    {result.success ? 'Sucesso' : 'Erro'}
-                  </Badge>
-                </div>
-              ))}
+              <h3 className="font-semibold">Selecionar Arquivos</h3>
             </div>
-          </CardContent>
-        </Card>
-      )}
+            
+            <div
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+            >
+              <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground mb-2">
+                Arraste arquivos aqui ou clique para selecionar
+              </p>
+              <p className="text-xs text-muted-foreground">
+                PDF, DOCX, DOC, TXT (máx. 20 arquivos)
+              </p>
+            </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.docx,.doc,.txt"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+
+            {/* Lista de arquivos selecionados */}
+            {selectedFiles.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>{selectedFiles.length} arquivo(s) selecionado(s)</span>
+                </div>
+                <div className="space-y-1">
+                  {selectedFiles.map((file, i) => (
+                    <div key={i} className="flex items-center justify-between text-sm bg-muted p-2 rounded">
+                      <span className="truncate">{file.name}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeFile(i)
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* PASSO 2: Escolher Template */}
+          {selectedFiles.length > 0 && (
+            <div className="space-y-3 pt-6 border-t">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
+                  2
+                </div>
+                <h3 className="font-semibold">Escolher Template de Normalização</h3>
+              </div>
+
+              {loadingTemplates ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Carregando templates...
+                </div>
+              ) : templates.length === 0 ? (
+                <div className="text-sm text-muted-foreground">
+                  Nenhum template disponível.{' '}
+                  <Link href="/templates/novo" className="text-primary hover:underline">
+                    Criar novo template
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  {templates.map((template) => (
+                    <label
+                      key={template.id}
+                      className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                        selectedTemplateId === template.id
+                          ? 'border-primary bg-primary/5'
+                          : 'hover:border-primary/50'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="template"
+                        value={template.id}
+                        checked={selectedTemplateId === template.id}
+                        onChange={(e) => setSelectedTemplateId(e.target.value)}
+                        className="mt-1"
+                      />
+                      <div>
+                        <div className="font-medium">{template.name}</div>
+                        {template.description && (
+                          <div className="text-sm text-muted-foreground">{template.description}</div>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {selectedTemplateId && (
+                <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Template selecionado
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* PASSO 3: Enviar */}
+          {selectedFiles.length > 0 && selectedTemplateId && (
+            <div className="space-y-3 pt-6 border-t">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
+                  3
+                </div>
+                <h3 className="font-semibold">Enviar e Processar</h3>
+              </div>
+
+              <Button
+                onClick={handleUpload}
+                disabled={isUploading}
+                size="lg"
+                className="w-full"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Processando...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-5 w-5 mr-2" />
+                    Enviar {selectedFiles.length} Documento(s)
+                  </>
+                )}
+              </Button>
+
+              <p className="text-xs text-center text-muted-foreground">
+                Os documentos serão salvos, validados e ficarão prontos para normalização
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

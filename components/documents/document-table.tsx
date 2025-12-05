@@ -3,7 +3,8 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { FileText, FileSpreadsheet, Database, Download, Edit2, Trash2, RefreshCw, MoreHorizontal } from 'lucide-react'
+import { FileText, FileSpreadsheet, Database, Download, Edit2, Trash2, RefreshCw, MoreHorizontal, Eye } from 'lucide-react'
+import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatFileSize } from '@/lib/utils/file-upload'
@@ -23,7 +24,7 @@ interface DocumentItem {
   fileSize: number
   status: string
   documentType?: string
-  uploadedBy?: { name: string }
+  uploadedBy?: { name: string; email?: string }
   createdAt: string
   processedAt?: string
   originalFileName?: string
@@ -33,6 +34,11 @@ interface DocumentItem {
   errorMessage?: string
   currentStep?: number
   totalSteps?: number
+  // Nova arquitetura - 2 dimensões
+  normalizationStatus?: string
+  classificationStatus?: string
+  normalizationError?: string
+  classificationError?: string
 }
 
 interface DocumentTableProps {
@@ -82,9 +88,10 @@ export function DocumentTable({
           <TableHeader>
             <TableRow>
               <TableHead>Arquivo</TableHead>
-              <TableHead>Tamanho</TableHead>
-              <TableHead>Status</TableHead>
               <TableHead>Upload por</TableHead>
+              <TableHead>Tamanho</TableHead>
+              <TableHead className="text-center">📋 Normalização</TableHead>
+              <TableHead className="text-center">🤖 Classificação</TableHead>
               <TableHead>Data</TableHead>
               {showActions && <TableHead className="text-right">Ações</TableHead>}
             </TableRow>
@@ -92,7 +99,7 @@ export function DocumentTable({
           <TableBody>
             {[1, 2, 3, 4, 5].map(i => (
               <TableRow key={i}>
-                <TableCell colSpan={showActions ? 6 : 5}>
+                <TableCell colSpan={showActions ? 7 : 6}>
                   <div className="h-12 bg-muted rounded animate-pulse" />
                 </TableCell>
               </TableRow>
@@ -121,9 +128,10 @@ export function DocumentTable({
         <TableHeader>
           <TableRow>
             <TableHead>Arquivo</TableHead>
-            <TableHead>Tamanho</TableHead>
-            <TableHead>Status</TableHead>
             <TableHead>Upload por</TableHead>
+            <TableHead>Tamanho</TableHead>
+            <TableHead className="text-center">📋 Normalização</TableHead>
+            <TableHead className="text-center">🤖 Classificação</TableHead>
             <TableHead>Data</TableHead>
             {showActions && <TableHead className="text-right">Ações</TableHead>}
           </TableRow>
@@ -131,9 +139,44 @@ export function DocumentTable({
         <TableBody>
           {documents.map((doc) => {
             const fileIcon = getFileIcon(doc.fileName, doc.documentType)
-            const processingTime = doc.processedAt && doc.createdAt
-              ? Math.round((new Date(doc.processedAt).getTime() - new Date(doc.createdAt).getTime()) / 1000)
-              : undefined
+            
+            // Helper para badge de normalização
+            const getNormalizationBadge = () => {
+              const status = doc.normalizationStatus || 'pending'
+              switch (status) {
+                case 'completed':
+                  return <Badge variant="outline" className="border-green-500 text-green-700 bg-green-50">✓ Salvo</Badge>
+                case 'validating':
+                  return <Badge variant="outline" className="border-blue-500 text-blue-700">Validando</Badge>
+                case 'saving':
+                  return <Badge variant="outline" className="border-blue-500 text-blue-700">Salvando</Badge>
+                case 'failed':
+                  return <Badge variant="destructive">✗ Erro</Badge>
+                case 'pending':
+                default:
+                  return <Badge variant="secondary">Pendente</Badge>
+              }
+            }
+            
+            // Helper para badge de classificação
+            const getClassificationBadge = () => {
+              const status = doc.classificationStatus || 'pending'
+              switch (status) {
+                case 'completed':
+                  return <Badge variant="outline" className="border-green-500 text-green-700 bg-green-50">✓ Completo</Badge>
+                case 'extracting':
+                  return <Badge variant="outline" className="border-blue-500 text-blue-700">Extraindo</Badge>
+                case 'chunking':
+                  return <Badge variant="outline" className="border-blue-500 text-blue-700">Chunking</Badge>
+                case 'embedding':
+                  return <Badge variant="outline" className="border-blue-500 text-blue-700">Vetorizando</Badge>
+                case 'failed':
+                  return <Badge variant="destructive">✗ Erro</Badge>
+                case 'pending':
+                default:
+                  return <Badge variant="secondary">Pendente</Badge>
+              }
+            }
             
             return (
               <TableRow key={doc.id}>
@@ -150,27 +193,24 @@ export function DocumentTable({
                   </div>
                 </TableCell>
 
+                {/* Upload por */}
+                <TableCell className="text-sm text-muted-foreground">
+                  {doc.uploadedBy?.name || 'Desconhecido'}
+                </TableCell>
+
                 {/* Tamanho */}
                 <TableCell className="text-sm text-muted-foreground">
                   {formatFileSize(doc.fileSize)}
                 </TableCell>
 
-                {/* Status */}
-                <TableCell>
-                  <DocumentStatusBadge
-                    status={doc.status}
-                    currentStep={doc.currentStep}
-                    totalSteps={doc.totalSteps}
-                    error={doc.errorMessage}
-                    processingTime={processingTime}
-                    showTooltip={true}
-                    showIcon={true}
-                  />
+                {/* 1ª Dimensão - NORMALIZAÇÃO */}
+                <TableCell className="text-center">
+                  {getNormalizationBadge()}
                 </TableCell>
 
-                {/* Upload por */}
-                <TableCell className="text-sm text-muted-foreground">
-                  {doc.uploadedBy?.name || 'Desconhecido'}
+                {/* 2ª Dimensão - CLASSIFICAÇÃO */}
+                <TableCell className="text-center">
+                  {getClassificationBadge()}
                 </TableCell>
 
                 {/* Data */}
@@ -184,6 +224,13 @@ export function DocumentTable({
                 {/* Ações */}
                 {showActions && (
                   <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Link href={`/documentos/${doc.id}`}>
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ver Detalhes
+                        </Button>
+                      </Link>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">
@@ -223,6 +270,7 @@ export function DocumentTable({
                         )}
                       </DropdownMenuContent>
                     </DropdownMenu>
+                    </div>
                   </TableCell>
                 )}
               </TableRow>

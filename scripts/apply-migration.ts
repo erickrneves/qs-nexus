@@ -1,53 +1,49 @@
-import postgres from 'postgres'
-import * as dotenv from 'dotenv'
+#!/usr/bin/env tsx
+
+/**
+ * Script para aplicar migration SQL diretamente
+ */
+
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import postgres from 'postgres'
+import { config } from 'dotenv'
+import { resolve } from 'path'
 
-dotenv.config({ path: '.env.local' })
+// Load env
+config({ path: resolve(process.cwd(), '.env.local') })
 
 async function main() {
-  const sql = postgres(process.env.DATABASE_URL!)
-  
-  console.log('Lendo arquivo de migration...')
-  const migrationSQL = readFileSync(
-    join(process.cwd(), 'lib/db/migrations/0006_add_organization_and_sped.sql'),
-    'utf-8'
-  )
-  
-  console.log('Executando migration...')
-  await sql.unsafe(migrationSQL)
-  
-  console.log('✓ Migration aplicada com sucesso!')
-  
-  // Verificar tabelas criadas
-  const tables = await sql`
-    SELECT tablename 
-    FROM pg_tables 
-    WHERE schemaname = 'public' 
-    AND tablename LIKE 'sped%'
-    ORDER BY tablename
-  `
-  
-  console.log('\nTabelas SPED criadas:')
-  tables.forEach(t => console.log('  ✓', t.tablename))
-  
-  // Verificar coluna organization_id
-  const hasOrgId = await sql`
-    SELECT column_name 
-    FROM information_schema.columns 
-    WHERE table_name = 'document_files' 
-    AND column_name = 'organization_id'
-  `
-  
-  if (hasOrgId.length > 0) {
-    console.log('\n✓ Coluna organization_id adicionada a document_files')
+  console.log('🔄 Aplicando migration no banco de dados...\n')
+
+  if (!process.env.DATABASE_URL) {
+    console.error('❌ DATABASE_URL não encontrada')
+    process.exit(1)
   }
-  
-  await sql.end()
+
+  const sql = postgres(process.env.DATABASE_URL, {
+    ssl: { rejectUnauthorized: false },
+  })
+
+  try {
+    // Ler arquivo SQL
+    const migrationPath = join(process.cwd(), 'drizzle', '0007_add_ai_fields_to_templates.sql')
+    const migrationSQL = readFileSync(migrationPath, 'utf-8')
+
+    console.log('📄 Executando SQL...\n')
+
+    // Executar migration
+    await sql.unsafe(migrationSQL)
+
+    console.log('✅ Migration aplicada com sucesso!')
+  } catch (error) {
+    console.error('❌ Erro ao aplicar migration:', error)
+    process.exit(1)
+  } finally {
+    await sql.end()
+  }
+
+  process.exit(0)
 }
 
-main().catch(err => {
-  console.error('Erro ao aplicar migration:', err)
-  process.exit(1)
-})
-
+main()

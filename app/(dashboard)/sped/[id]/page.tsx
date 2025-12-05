@@ -1,372 +1,283 @@
 'use client'
 
+/**
+ * Página de Detalhes do Arquivo SPED
+ * 
+ * Exibe:
+ * - Informações do arquivo
+ * - Botão para processar ECD
+ * - Resultados do processamento (BP e DRE)
+ */
+
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useRouter, useParams } from 'next/navigation'
+import { ArrowLeft, FileSpreadsheet, Play, CheckCircle2, Loader2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  ArrowLeft,
-  Building2,
-  Calendar,
-  Database,
-  FileText,
-  TrendingUp,
-  Loader2,
-  AlertCircle,
-} from 'lucide-react'
-import Link from 'next/link'
-import { toast } from 'react-hot-toast'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ECDResultsViewer } from '@/components/ecd/ecd-results-viewer'
+import toast from 'react-hot-toast'
 
-interface SpedFile {
-  id: string
-  fileName: string
-  cnpj: string
-  companyName: string
-  periodStart: string
-  periodEnd: string
-  status: string
-  totalRecords: number
-  processedRecords: number
-  fileType: string
-  createdAt: string
-}
-
-interface Account {
-  accountCode: string
-  accountName: string
-  accountLevel: number
-  accountType: string
-}
-
-interface Entry {
-  id: string
-  entryDate: string
-  entryNumber: string
-  description: string | null
-  entryAmount: number
-}
-
-export default function SpedDetailsPage() {
-  const params = useParams()
+export default function SpedDetailPage() {
   const router = useRouter()
+  const params = useParams()
   const spedId = params.id as string
   
-  const [file, setFile] = useState<SpedFile | null>(null)
-  const [accounts, setAccounts] = useState<Account[]>([])
-  const [entries, setEntries] = useState<Entry[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [processing, setProcessing] = useState(false)
+  const [spedFile, setSpedFile] = useState<any>(null)
+  const [ecdResults, setEcdResults] = useState<any>(null)
 
   useEffect(() => {
-    loadSpedDetails()
+    if (spedId) {
+      loadSpedFile()
+      loadEcdResults()
+    }
   }, [spedId])
 
-  const loadSpedDetails = async () => {
-    setIsLoading(true)
-    setError(null)
-    
+  const loadSpedFile = async () => {
     try {
-      // Carregar dados do arquivo SPED
-      const fileResponse = await fetch(`/api/sped/${spedId}`)
-      if (!fileResponse.ok) {
-        throw new Error('Arquivo SPED não encontrado')
-      }
-      const fileData = await fileResponse.json()
-      setFile(fileData)
-
-      // Carregar plano de contas
-      const accountsResponse = await fetch(`/api/sped/${spedId}/accounts?limit=50`)
-      if (accountsResponse.ok) {
-        const accountsData = await accountsResponse.json()
-        setAccounts(accountsData.accounts || [])
-      }
-
-      // Carregar lançamentos
-      const entriesResponse = await fetch(`/api/sped/${spedId}/entries?limit=20`)
-      if (entriesResponse.ok) {
-        const entriesData = await entriesResponse.json()
-        setEntries(entriesData.entries || [])
-      }
-    } catch (err: any) {
-      setError(err.message || 'Erro ao carregar detalhes')
-      toast.error('Erro ao carregar detalhes do SPED')
+      const res = await fetch(`/api/sped/${spedId}`)
+      if (!res.ok) throw new Error('Erro ao carregar arquivo SPED')
+      const data = await res.json()
+      setSpedFile(data)
+    } catch (error) {
+      console.error('Erro:', error)
+      toast.error('Erro ao carregar arquivo SPED')
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
-  const formatCNPJ = (cnpj: string) => {
-    if (!cnpj || cnpj === '00.000.000/0000-00') return cnpj
-    return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
+  const loadEcdResults = async () => {
+    try {
+      const res = await fetch(`/api/sped/${spedId}/ecd-results`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.bp?.length > 0 || data.dre?.length > 0) {
+          setEcdResults(data)
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar resultados ECD:', error)
+    }
   }
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-'
-    return new Date(dateStr).toLocaleDateString('pt-BR')
+  const handleProcessECD = async () => {
+    try {
+      setProcessing(true)
+      toast.loading('Processando ECD...', { id: 'process-ecd' })
+
+      const res = await fetch(`/api/sped/${spedId}/process-ecd`, {
+        method: 'POST',
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Erro ao processar ECD')
+      }
+
+      const result = await res.json()
+      
+      toast.success(
+        `ECD processado! BP: ${result.bp.count} contas, DRE: ${result.dre.count} contas`,
+        { id: 'process-ecd', duration: 5000 }
+      )
+
+      // Recarregar resultados
+      await loadEcdResults()
+    } catch (error) {
+      console.error('Erro:', error)
+      toast.error(
+        error instanceof Error ? error.message : 'Erro ao processar ECD',
+        { id: 'process-ecd' }
+      )
+    } finally {
+      setProcessing(false)
+    }
   }
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value)
+  const handleDelete = async () => {
+    if (!spedFile) return
+
+    if (!confirm(`Deseja realmente deletar o arquivo "${spedFile.fileName}"?\n\nTodos os dados processados (BP e DRE) serão perdidos.\n\nEsta ação não pode ser desfeita.`)) {
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/sped/${spedId}`, {
+        method: 'DELETE',
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Erro ao deletar arquivo')
+      }
+
+      toast.success('Arquivo deletado com sucesso!')
+      router.push('/sped')
+    } catch (error) {
+      console.error('Erro:', error)
+      toast.error(error instanceof Error ? error.message : 'Erro ao deletar arquivo')
+    }
   }
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="flex flex-1 items-center justify-center">
+      <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     )
   }
 
-  if (error || !file) {
+  if (!spedFile) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-4">
-        <AlertCircle className="h-12 w-12 text-muted-foreground" />
-        <h2 className="text-xl font-semibold">Arquivo não encontrado</h2>
-        <p className="text-muted-foreground">{error || 'O arquivo SPED não existe'}</p>
-        <Button asChild>
-          <Link href="/sped">
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <p className="text-muted-foreground">Arquivo SPED não encontrado</p>
+        <Button onClick={() => router.back()} variant="outline">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar para SPED
-          </Link>
+          Voltar
         </Button>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/sped">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold">{file.fileName}</h1>
-          <p className="text-muted-foreground">Detalhes do arquivo SPED</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button onClick={() => router.back()} variant="ghost" size="icon">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <FileSpreadsheet className="h-6 w-6" />
+              {spedFile.fileName}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Arquivo SPED ECD
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {!ecdResults && (
+            <Button
+              onClick={handleProcessECD}
+              disabled={processing}
+              size="lg"
+            >
+              {processing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Processando...
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 mr-2" />
+                  Processar ECD Agora
+                </>
+              )}
+            </Button>
+          )}
+          
+          <Button
+            onClick={handleDelete}
+            variant="outline"
+            size="lg"
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Deletar
+          </Button>
         </div>
       </div>
 
-      {/* Info Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      {/* Informações do Arquivo */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Empresa</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
+        <CardHeader>
+          <CardTitle className="text-lg">Informações do Arquivo</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-lg font-bold">{file.companyName}</div>
-            <p className="text-xs text-muted-foreground font-mono">
-              CNPJ: {formatCNPJ(file.cnpj)}
+        <CardContent className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Nome do Arquivo</p>
+            <p className="text-sm">{spedFile.fileName}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">CNPJ</p>
+            <p className="text-sm">{spedFile.cnpj}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Empresa</p>
+            <p className="text-sm">{spedFile.companyName}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Período</p>
+            <p className="text-sm">
+              {new Date(spedFile.periodStart).toLocaleDateString('pt-BR')} até{' '}
+              {new Date(spedFile.periodEnd).toLocaleDateString('pt-BR')}
             </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Período</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-bold">
-              {formatDate(file.periodStart)} - {formatDate(file.periodEnd)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Tipo: {file.fileType.toUpperCase()}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Processamento</CardTitle>
-            <Database className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-bold">
-              {file.processedRecords} / {file.totalRecords}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {file.status === 'completed' ? 'Completo' : 'Em processamento'}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tabs com dados */}
-      <Tabs defaultValue="accounts" className="w-full">
-        <TabsList>
-          <TabsTrigger value="accounts">Plano de Contas</TabsTrigger>
-          <TabsTrigger value="entries">Lançamentos</TabsTrigger>
-          <TabsTrigger value="info">Informações</TabsTrigger>
-        </TabsList>
-
-        {/* Plano de Contas */}
-        <TabsContent value="accounts">
-          <Card>
-            <CardHeader>
-              <CardTitle>Plano de Contas</CardTitle>
-              <CardDescription>
-                Contas contábeis extraídas do arquivo SPED
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {accounts.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Nenhuma conta encontrada
-                </div>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Upload em</p>
+            <p className="text-sm">{new Date(spedFile.createdAt).toLocaleString('pt-BR')}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Status</p>
+            <div className="flex items-center gap-2">
+              {ecdResults ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <span className="text-sm text-green-600">Processado</span>
+                </>
               ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Código</TableHead>
-                        <TableHead>Nome da Conta</TableHead>
-                        <TableHead>Nível</TableHead>
-                        <TableHead>Tipo</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {accounts.map((account, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-mono font-medium">
-                            {account.accountCode}
-                          </TableCell>
-                          <TableCell>{account.accountName}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{account.accountLevel}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">{account.accountType}</Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                <span className="text-sm text-muted-foreground">Aguardando processamento</span>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+          </div>
+          </CardContent>
+        </Card>
 
-        {/* Lançamentos */}
-        <TabsContent value="entries">
-          <Card>
-            <CardHeader>
-              <CardTitle>Lançamentos Contábeis</CardTitle>
-              <CardDescription>
-                Últimos lançamentos extraídos do SPED
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {entries.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Nenhum lançamento encontrado
-                </div>
-              ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Número</TableHead>
-                        <TableHead>Descrição</TableHead>
-                        <TableHead className="text-right">Valor</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {entries.map((entry) => (
-                        <TableRow key={entry.id}>
-                          <TableCell className="font-mono text-sm">
-                            {formatDate(entry.entryDate)}
-                          </TableCell>
-                          <TableCell className="font-mono">{entry.entryNumber}</TableCell>
-                          <TableCell className="max-w-[300px] truncate" title={entry.description || '-'}>
-                            {entry.description || '-'}
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-sm">
-                            {formatCurrency(Number(entry.entryAmount))}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+      {/* Resultados ECD */}
+      {ecdResults && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Resultados do Processamento</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ECDResultsViewer
+              spedFileId={spedId}
+              bp={ecdResults.bp}
+              dre={ecdResults.dre}
+              metadata={ecdResults.metadata}
+            />
+          </CardContent>
+        </Card>
+      )}
 
-        {/* Informações */}
-        <TabsContent value="info">
-          <Card>
-            <CardHeader>
-              <CardTitle>Informações do Arquivo</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Nome do Arquivo</p>
-                  <p className="font-medium">{file.fileName}</p>
+      {/* Instruções */}
+      {!ecdResults && (
+        <Card className="border-dashed">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Este arquivo ainda não foi processado.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Clique em "Processar ECD Agora" para extrair Balanço Patrimonial e DRE de 5 anos.
+              </p>
+              <div className="flex items-center justify-center gap-4 pt-4 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <span className="font-medium">💰 Custo:</span> $0.00 (sem IA)
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Tipo SPED</p>
-                  <p className="font-medium">{file.fileType.toUpperCase()}</p>
+                <div className="flex items-center gap-1">
+                  <span className="font-medium">⚡ Tempo:</span> ~2-5 segundos
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">CNPJ</p>
-                  <p className="font-mono font-medium">{formatCNPJ(file.cnpj)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Razão Social</p>
-                  <p className="font-medium">{file.companyName}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Período Inicial</p>
-                  <p className="font-medium">{formatDate(file.periodStart)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Período Final</p>
-                  <p className="font-medium">{formatDate(file.periodEnd)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Status</p>
-                  <Badge variant={file.status === 'completed' ? 'default' : 'secondary'}>
-                    {file.status === 'completed' ? 'Processado' : 'Processando'}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Importado em</p>
-                  <p className="font-medium">{formatDate(file.createdAt)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total de Registros</p>
-                  <p className="font-medium">{file.totalRecords.toLocaleString('pt-BR')}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Registros Processados</p>
-                  <p className="font-medium">{file.processedRecords.toLocaleString('pt-BR')}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+      )}
     </div>
   )
 }
-

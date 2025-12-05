@@ -1,46 +1,111 @@
+/**
+ * API para gerenciar arquivos SPED
+ * Métodos: GET, DELETE
+ */
+
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/config'
 import { db } from '@/lib/db'
-import { spedFiles } from '@/lib/db/schema/sped'
+import { spedFiles, ecdBalancoPatrimonial, ecdDRE } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { unlink } from 'fs/promises'
+import { join } from 'path'
+import { existsSync } from 'fs'
 
-/**
- * GET /api/sped/[id]
- * Retorna detalhes de um arquivo SPED específico
- */
 export async function GET(
-  request: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    // 1. Autenticação
     const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const [file] = await db
+    const spedFileId = params.id
+
+    // 2. Buscar arquivo SPED
+    const [spedFile] = await db
       .select()
       .from(spedFiles)
-      .where(eq(spedFiles.id, params.id))
+      .where(eq(spedFiles.id, spedFileId))
       .limit(1)
 
-    if (!file) {
-      return NextResponse.json({ error: 'Arquivo não encontrado' }, { status: 404 })
+    if (!spedFile) {
+      return NextResponse.json({ error: 'Arquivo SPED não encontrado' }, { status: 404 })
     }
 
-    // Verificar se usuário tem acesso (mesma organização ou super_admin)
-    if (
-      session.user.globalRole !== 'super_admin' &&
-      file.organizationId &&
-      session.user.organizationId !== file.organizationId
-    ) {
-      return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
-    }
-
-    return NextResponse.json(file)
+    return NextResponse.json(spedFile)
   } catch (error) {
-    console.error('Error fetching SPED file:', error)
-    return NextResponse.json({ error: 'Erro ao buscar arquivo' }, { status: 500 })
+    console.error('[SPED-GET] Erro:', error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Erro desconhecido' },
+      { status: 500 }
+    )
   }
 }
 
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // 1. Autenticação
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
+    const spedFileId = params.id
+
+    console.log(`[SPED-DELETE] Deletando arquivo SPED: ${spedFileId}`)
+
+    // 2. Buscar arquivo SPED
+    const [spedFile] = await db
+      .select()
+      .from(spedFiles)
+      .where(eq(spedFiles.id, spedFileId))
+      .limit(1)
+
+    if (!spedFile) {
+      return NextResponse.json({ error: 'Arquivo SPED não encontrado' }, { status: 404 })
+    }
+
+    // 3. Deletar dados processados (BP e DRE)
+    console.log('[SPED-DELETE] Deletando BP...')
+    await db
+      .delete(ecdBalancoPatrimonial)
+      .where(eq(ecdBalancoPatrimonial.spedFileId, spedFileId))
+
+    console.log('[SPED-DELETE] Deletando DRE...')
+    await db
+      .delete(ecdDRE)
+      .where(eq(ecdDRE.spedFileId, spedFileId))
+
+    // 4. Deletar arquivo físico
+    const filePath = join(process.cwd(), 'public', spedFile.filePath)
+    if (existsSync(filePath)) {
+      await unlink(filePath)
+      console.log('[SPED-DELETE] Arquivo físico deletado')
+    }
+
+    // 5. Deletar registro do banco
+    await db
+      .delete(spedFiles)
+      .where(eq(spedFiles.id, spedFileId))
+
+    console.log('[SPED-DELETE] ✅ Arquivo SPED deletado com sucesso')
+
+    return NextResponse.json({
+      success: true,
+      message: 'Arquivo SPED deletado com sucesso',
+    })
+  } catch (error) {
+    console.error('[SPED-DELETE] ❌ Erro:', error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Erro ao deletar arquivo' },
+      { status: 500 }
+    )
+  }
+}

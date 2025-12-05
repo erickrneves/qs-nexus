@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { documents } from '@/lib/db/schema/documents'
+import { ragUsers } from '@/lib/db/schema/rag-users'
 import { eq, and, gte, lte, ilike, or, desc, asc } from 'drizzle-orm'
 
 // Forçar runtime dinâmico
@@ -82,8 +83,43 @@ export async function GET(request: NextRequest) {
       orderByClause = sortOrder === 'asc' ? asc(documents.createdAt) : desc(documents.createdAt)
     }
 
-    // Query com filtros
-    let query = db.select().from(documents)
+    // Query com filtros e join com usuários
+    let query = db
+      .select({
+        id: documents.id,
+        organizationId: documents.organizationId,
+        uploadedBy: documents.uploadedBy,
+        fileName: documents.fileName,
+        originalFileName: documents.originalFileName,
+        filePath: documents.filePath,
+        fileSize: documents.fileSize,
+        fileHash: documents.fileHash,
+        mimeType: documents.mimeType,
+        documentType: documents.documentType,
+        title: documents.title,
+        description: documents.description,
+        tags: documents.tags,
+        metadata: documents.metadata,
+        status: documents.status,
+        errorMessage: documents.errorMessage,
+        processedAt: documents.processedAt,
+        totalChunks: documents.totalChunks,
+        totalTokens: documents.totalTokens,
+        isActive: documents.isActive,
+        createdAt: documents.createdAt,
+        updatedAt: documents.updatedAt,
+        // Novos campos da refatoração
+        normalizationStatus: documents.normalizationStatus,
+        classificationStatus: documents.classificationStatus,
+        normalizationError: documents.normalizationError,
+        classificationError: documents.classificationError,
+        uploader: {
+          name: ragUsers.name,
+          email: ragUsers.email,
+        },
+      })
+      .from(documents)
+      .leftJoin(ragUsers, eq(documents.uploadedBy, ragUsers.id))
 
     if (whereClause) {
       query = query.where(whereClause) as any
@@ -96,8 +132,11 @@ export async function GET(request: NextRequest) {
     const allDocs = await query
     const total = allDocs.length
 
-    // Aplicar paginação
-    const paginatedDocs = allDocs.slice(offset, offset + limit)
+    // Aplicar paginação e reformatar
+    const paginatedDocs = allDocs.slice(offset, offset + limit).map(doc => ({
+      ...doc,
+      uploadedBy: doc.uploader,
+    }))
 
     // Calcular estatísticas
     const stats = {

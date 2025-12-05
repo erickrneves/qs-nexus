@@ -1,0 +1,241 @@
+#!/usr/bin/env tsx
+
+/**
+ * Script: Criar Templates Padrão
+ * 
+ * Cria templates de normalização padrão para começar a usar o sistema
+ */
+
+import { db } from '../lib/db'
+import { normalizationTemplates } from '../lib/db/schema/normalization-templates'
+import { classificationConfigs } from '../lib/db/schema/classification-configs'
+import { organizations } from '../lib/db/schema/organizations'
+
+async function main() {
+  console.log('🔧 Criando templates padrão...\n')
+
+  try {
+    // Buscar primeira organização para criar templates de exemplo
+    const orgs = await db.select().from(organizations).limit(1)
+    
+    if (orgs.length === 0) {
+      console.log('⚠️  Nenhuma organização encontrada. Crie uma organização primeiro.')
+      process.exit(0)
+    }
+
+    const orgId = orgs[0].id
+    console.log(`📋 Usando organização: ${orgs[0].name} (${orgId})\n`)
+
+    // Template 1: Documentos Gerais
+    const [generalTemplate] = await db
+      .insert(normalizationTemplates)
+      .values({
+        organizationId: orgId,
+        name: 'Documentos Gerais',
+        description: 'Template padrão para documentos gerais (contratos, relatórios, etc)',
+        baseType: 'document',
+        category: 'geral',
+        tableName: 'documentos_gerais',
+        fields: [
+          {
+            fieldName: 'titulo',
+            displayName: 'Título do Documento',
+            fieldType: 'text',
+            isRequired: true,
+            description: 'Título ou assunto principal',
+          },
+          {
+            fieldName: 'data_documento',
+            displayName: 'Data do Documento',
+            fieldType: 'date',
+            isRequired: false,
+            description: 'Data de criação ou emissão',
+          },
+          {
+            fieldName: 'emissor',
+            displayName: 'Emissor',
+            fieldType: 'text',
+            isRequired: false,
+            description: 'Quem emitiu o documento',
+          },
+          {
+            fieldName: 'destinatario',
+            displayName: 'Destinatário',
+            fieldType: 'text',
+            isRequired: false,
+            description: 'Para quem é o documento',
+          },
+          {
+            fieldName: 'valor',
+            displayName: 'Valor',
+            fieldType: 'numeric',
+            isRequired: false,
+            description: 'Valor monetário se aplicável',
+          },
+          {
+            fieldName: 'observacoes',
+            displayName: 'Observações',
+            fieldType: 'text',
+            isRequired: false,
+            description: 'Observações relevantes',
+          },
+        ],
+        sqlTableCreated: false,
+        isActive: true,
+        isDefaultForBaseType: true,
+      })
+      .returning()
+
+    console.log(`✅ Template criado: ${generalTemplate.name}`)
+
+    // Config de IA para template geral
+    const [generalConfig] = await db
+      .insert(classificationConfigs)
+      .values({
+        organizationId: orgId,
+        normalizationTemplateId: generalTemplate.id,
+        name: 'Config IA - Documentos Gerais',
+        description: 'Configuração de IA para extração de dados de documentos gerais',
+        systemPrompt: `Você é um assistente especializado em extrair informações de documentos.
+Analise o documento fornecido e extraia as seguintes informações:
+- Título ou assunto principal
+- Data do documento (se mencionada)
+- Emissor (quem criou/enviou)
+- Destinatário (para quem é direcionado)
+- Valor monetário (se houver)
+- Observações relevantes
+
+Retorne os dados no formato JSON solicitado.`,
+        modelProvider: 'openai',
+        modelName: 'gpt-4',
+        temperature: '0.10',
+        maxInputTokens: 8000,
+        maxOutputTokens: 2000,
+        enableRAG: true,
+        enableChunking: true,
+        chunkSize: 800,
+        isActive: true,
+        isDefault: true,
+      })
+      .returning()
+
+    console.log(`✅ Config de IA criada: ${generalConfig.name}`)
+
+    // Template 2: Contratos
+    const [contractTemplate] = await db
+      .insert(normalizationTemplates)
+      .values({
+        organizationId: orgId,
+        name: 'Contratos',
+        description: 'Template para contratos de prestação de serviços, compra/venda, etc',
+        baseType: 'document',
+        category: 'juridico',
+        tableName: 'contratos',
+        fields: [
+          {
+            fieldName: 'tipo_contrato',
+            displayName: 'Tipo de Contrato',
+            fieldType: 'text',
+            isRequired: true,
+            description: 'Tipo (prestação de serviços, compra/venda, etc)',
+          },
+          {
+            fieldName: 'numero_contrato',
+            displayName: 'Número do Contrato',
+            fieldType: 'text',
+            isRequired: false,
+          },
+          {
+            fieldName: 'contratante',
+            displayName: 'Contratante',
+            fieldType: 'text',
+            isRequired: true,
+          },
+          {
+            fieldName: 'contratado',
+            displayName: 'Contratado',
+            fieldType: 'text',
+            isRequired: true,
+          },
+          {
+            fieldName: 'data_inicio',
+            displayName: 'Data de Início',
+            fieldType: 'date',
+            isRequired: false,
+          },
+          {
+            fieldName: 'data_termino',
+            displayName: 'Data de Término',
+            fieldType: 'date',
+            isRequired: false,
+          },
+          {
+            fieldName: 'valor_total',
+            displayName: 'Valor Total',
+            fieldType: 'numeric',
+            isRequired: false,
+          },
+          {
+            fieldName: 'objeto',
+            displayName: 'Objeto do Contrato',
+            fieldType: 'text',
+            isRequired: false,
+          },
+        ],
+        sqlTableCreated: false,
+        isActive: true,
+        isDefaultForBaseType: false,
+      })
+      .returning()
+
+    console.log(`✅ Template criado: ${contractTemplate.name}`)
+
+    // Config de IA para contratos
+    await db
+      .insert(classificationConfigs)
+      .values({
+        organizationId: orgId,
+        normalizationTemplateId: contractTemplate.id,
+        name: 'Config IA - Contratos',
+        description: 'Configuração de IA para extração de dados de contratos',
+        systemPrompt: `Você é um assistente jurídico especializado em analisar contratos.
+Extraia as seguintes informações do contrato:
+- Tipo de contrato
+- Número do contrato (se houver)
+- Partes: Contratante e Contratado
+- Datas de vigência (início e término)
+- Valor total
+- Objeto/finalidade do contrato
+
+Retorne os dados estruturados em JSON.`,
+        modelProvider: 'openai',
+        modelName: 'gpt-4',
+        temperature: '0.05',
+        maxInputTokens: 12000,
+        maxOutputTokens: 2000,
+        enableRAG: true,
+        enableChunking: true,
+        chunkSize: 1000,
+        isActive: true,
+        isDefault: true,
+      })
+
+    console.log(`✅ Config de IA criada para contratos`)
+
+    console.log('\n' + '='.repeat(60))
+    console.log(`✅ Templates padrão criados com sucesso!`)
+    console.log(`   - Documentos Gerais`)
+    console.log(`   - Contratos`)
+    console.log('\n⚠️  Lembre-se de criar as tabelas no banco antes de usar:`)
+    console.log(`   Execute: npm run migrate ou use o endpoint /api/documents/normalize/create-table`)
+    console.log('='.repeat(60))
+  } catch (error) {
+    console.error('❌ Erro ao criar templates:', error)
+    process.exit(1)
+  }
+
+  process.exit(0)
+}
+
+main()
+

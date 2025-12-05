@@ -35,10 +35,11 @@ import {
   X,
   Search,
   Upload,
+  Trash2,
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
-import { DocumentUploadDialog } from '@/components/documents/document-upload-dialog'
+import { DocumentUploadDialog } from '@/components/documents/document-upload'
 
 interface SpedFile {
   id: string
@@ -134,6 +135,29 @@ export default function SpedPage() {
     setCnpjFilter('')
     setYearFrom('')
     setYearTo('')
+  }
+
+  const handleDelete = async (fileId: string, fileName: string) => {
+    if (!confirm(`Deseja realmente deletar o arquivo "${fileName}"?\n\nEsta ação não pode ser desfeita.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/sped/${fileId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Erro ao deletar arquivo')
+      }
+
+      toast.success('Arquivo deletado com sucesso!')
+      loadSpedFiles() // Recarregar lista
+    } catch (error) {
+      console.error('Erro ao deletar:', error)
+      toast.error(error instanceof Error ? error.message : 'Erro ao deletar arquivo')
+    }
   }
 
   const hasActiveFilters =
@@ -357,11 +381,9 @@ export default function SpedPage() {
                   Limpar Filtros
                 </Button>
               ) : (
-                <Button asChild>
-                  <Link href="/upload?tab=sped">
-                    <Database className="h-4 w-4 mr-2" />
-                    Importar SPED
-                  </Link>
+                <Button onClick={() => setIsUploadDialogOpen(true)} disabled={!currentOrg}>
+                  <Database className="h-4 w-4 mr-2" />
+                  Importar SPED
                 </Button>
               )}
             </div>
@@ -417,9 +439,8 @@ export default function SpedPage() {
                             variant="ghost"
                             size="icon"
                             asChild
-                            title="Visualizar detalhes"
                           >
-                            <Link href={`/sped/${file.id}`}>
+                            <Link href={`/sped/${file.id}`} title="Ver Detalhes e Processar ECD">
                               <Eye className="h-4 w-4" />
                               <span className="sr-only">Visualizar</span>
                             </Link>
@@ -427,13 +448,11 @@ export default function SpedPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => {
-                              toast.success('Download em desenvolvimento')
-                            }}
-                            title="Baixar relatório"
+                            onClick={() => handleDelete(file.id, file.fileName)}
+                            title="Deletar arquivo"
                           >
-                            <Download className="h-4 w-4" />
-                            <span className="sr-only">Download</span>
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                            <span className="sr-only">Deletar</span>
                           </Button>
                         </div>
                       </TableCell>

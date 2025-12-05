@@ -1,0 +1,183 @@
+/**
+ * Normalized Data Service
+ * 
+ * Serviço para trabalhar com dados normalizados em JSONB
+ */
+
+import { db } from '@/lib/db'
+import { normalizedData } from '@/lib/db/schema/normalized-data'
+import { normalizationTemplates } from '@/lib/db/schema/normalization-templates'
+import { eq, and, sql } from 'drizzle-orm'
+import { jsonbField, jsonbNumeric, jsonbDate, jsonbSearchAny } from '@/lib/utils/jsonb-queries'
+
+interface QueryParams {
+  organizationId: string
+  templateId?: string
+  documentId?: string
+  filters?: {
+    field: string
+    operator: '=' | '>' | '<' | '>=' | '<=' | '!=' | 'LIKE' | 'ILIKE'
+    value: any
+  }[]
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+  limit?: number
+  offset?: number
+}
+
+/**
+ * Busca dados normalizados com filtros
+ */
+export async function queryNormalizedData(params: QueryParams) {
+  const {
+    organizationId,
+    templateId,
+    documentId,
+    filters = [],
+    sortBy,
+    sortOrder = 'desc',
+    limit = 50,
+    offset = 0,
+  } = params
+
+  let query = db
+    .select()
+    .from(normalizedData)
+
+  // Filtros base
+  const conditions = [eq(normalizedData.organizationId, organizationId)]
+  
+  if (templateId) {
+    conditions.push(eq(normalizedData.templateId, templateId))
+  }
+  
+  if (documentId) {
+    conditions.push(eq(normalizedData.documentId, documentId))
+  }
+
+  // Filtros JSONB dinâmicos
+  for (const filter of filters) {
+    conditions.push(jsonbField('data', filter.field, filter.operator, filter.value))
+  }
+
+  query = query.where(and(...conditions)) as any
+
+  // Ordenação
+  if (sortBy) {
+    const orderClause = sortOrder === 'asc'
+      ? sql.raw(`data->>'${sortBy}' ASC`)
+      : sql.raw(`data->>'${sortBy}' DESC`)
+    query = query.orderBy(orderClause) as any
+  } else {
+    query = query.orderBy(sql`created_at DESC`) as any
+  }
+
+  // Paginação
+  query = query.limit(limit).offset(offset) as any
+
+  const results = await query
+
+  return {
+    data: results,
+    pagination: {
+      limit,
+      offset,
+      hasMore: results.length === limit,
+    },
+  }
+}
+
+/**
+ * Busca dados de um documento específico
+ */
+export async function getDocumentNormalizedData(documentId: string) {
+  const [result] = await db
+    .select()
+    .from(normalizedData)
+    .where(eq(normalizedData.documentId, documentId))
+    .limit(1)
+
+  return result
+}
+
+/**
+ * Atualiza dados normalizados de um documento
+ */
+export async function updateDocumentNormalizedData(
+  documentId: string,
+  data: Record<string, any>,
+  userId?: string
+) {
+  const [existing] = await db
+    .select()
+    .from(normalizedData)
+    .where(eq(normalizedData.documentId, documentId))
+    .limit(1)
+
+  if (existing) {
+    // Atualizar existente
+    const [updated] = await db
+      .update(normalizedData)
+      .set({
+        data,
+        updatedAt: new Date(),
+        updatedBy: userId,
+      })
+      .where(eq(normalizedData.id, existing.id))
+      .returning()
+    
+    return updated
+  } else {
+    throw new Error('Registro não encontrado')
+  }
+}
+
+/**
+ * Busca agregada - contar documentos por valor de campo
+ * 
+ * @example
+ * // Contar contratos por contratante
+ * const stats = await aggregateByField(orgId, templateId, 'contratante')
+ */
+export async function aggregateByField(
+  organizationId: string,
+  templateId: string,
+  field: string
+) {
+  const results = await db.execute(sql`
+    SELECT 
+      data->>'${sql.raw(field)}' as field_value,
+      COUNT(*) as count
+    FROM normalized_data
+    WHERE organization_id = ${organizationId}
+    AND template_id = ${templateId}
+    AND data ? '${sql.raw(field)}'
+    GROUP BY data->>'${sql.raw(field)}'
+    ORDER BY count DESC
+    LIMIT 50
+  `)
+
+  return results.rows
+}
+
+/**
+ * Busca com full-text search no JSONB
+ */
+export async function searchInNormalizedData(
+  organizationId: string,
+  templateId: string,
+  searchTerm: string
+) {
+  // Busca em todos os valores do JSONB
+  const results = await db.execute(sql`
+    SELECT *
+    FROM normalized_data
+    WHERE organization_id = ${organizationId}
+    AND template_id = ${templateId}
+    AND data::text ILIKE ${'%' + searchTerm + '%'}
+    LIMIT 50
+  `)
+
+  return results.rows
+}
+

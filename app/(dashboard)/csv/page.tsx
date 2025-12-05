@@ -38,7 +38,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
-import { DocumentUploadDialog } from '@/components/documents/document-upload-dialog'
+import { DocumentUploadDialog } from '@/components/documents/document-upload'
 
 interface CsvFile {
   id: string

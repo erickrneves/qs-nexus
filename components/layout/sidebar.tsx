@@ -55,6 +55,7 @@ const navigationGroups = [
     title: 'Dados',
     items: [
       { name: 'Documentos', href: '/documentos', icon: FileText, description: 'PDFs, Word, Textos' },
+      { name: 'Templates', href: '/templates', icon: FileText, description: 'Templates de Normalização' },
       { name: 'Planilhas (CSV)', href: '/csv', icon: FileSpreadsheet, description: 'Planilhas de controle' },
       { name: 'SPED (Obrigações)', href: '/sped', icon: Database, description: 'ECD, ECF e EFD' },
       { name: 'Configurações de Dados', href: '/settings/data', icon: Settings },

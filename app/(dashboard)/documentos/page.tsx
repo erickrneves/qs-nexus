@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FileText, Upload as UploadIcon } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { useOrganization } from '@/lib/contexts/organization-context'
-import { DocumentUploadDialog } from '@/components/documents/document-upload-dialog'
+import { DocumentUploadDialog } from '@/components/documents/document-upload'
 import { DocumentTable } from '@/components/documents/document-table'
 import { DocumentFilters, FilterState } from '@/components/documents/document-filters'
 import { DocumentStatsCards } from '@/components/documents/document-stats-cards'

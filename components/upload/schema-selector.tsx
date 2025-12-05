@@ -3,9 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Loader2, FileText, Database, Table, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
+import { Loader2, FileText, Database, Table, Sparkles, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react'
 import { Button } from '../ui/button'
 
 interface DocumentSchema {
@@ -155,7 +153,7 @@ export function SchemaSelector({
     return (
       <div className={`flex items-center justify-center py-8 ${className}`}>
         <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-600">Carregando schemas...</span>
+        <span className="ml-2 text-gray-600">Carregando templates de normalização...</span>
       </div>
     )
   }
@@ -165,10 +163,10 @@ export function SchemaSelector({
       <Card className={className}>
         <CardContent className="py-8 text-center">
           <p className="text-gray-600">
-            Nenhum schema ativo encontrado para este tipo de documento.
+            Nenhum template de normalização ativo encontrado para este tipo de documento.
           </p>
           <p className="text-sm text-gray-500 mt-2">
-            Entre em contato com o administrador para criar schemas.
+            Entre em contato com o administrador para criar templates.
           </p>
         </CardContent>
       </Card>
@@ -183,26 +181,32 @@ export function SchemaSelector({
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             {getBaseTypeIcon(schema.baseType)}
-            <CardTitle className="text-base">Schema Selecionado</CardTitle>
+            <CardTitle className="text-base">Template de Normalização</CardTitle>
           </div>
+          <CardDescription>
+            Define como os dados serão extraídos e organizados
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-semibold text-blue-900">{schema.name}</h3>
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <h3 className="font-semibold text-blue-900 text-lg">{schema.name}</h3>
+            </div>
             {schema.description && (
               <p className="text-sm text-blue-700 mt-1">{schema.description}</p>
             )}
             <div className="mt-3 text-sm text-blue-800">
-              <strong>Campos que serão extraídos:</strong>
+              <strong>📋 Dados que serão extraídos:</strong>
               <ul className="list-disc list-inside mt-1 space-y-0.5">
                 {schema.fields.slice(0, 5).map((field, i) => (
                   <li key={i}>
                     {field.displayName}
-                    {field.isRequired && <span className="text-red-600">*</span>}
+                    {field.isRequired && <span className="text-red-600 ml-1">*</span>}
                   </li>
                 ))}
                 {schema.fields.length > 5 && (
-                  <li className="text-blue-600">
+                  <li className="text-blue-600 font-medium">
                     +{schema.fields.length - 5} campos adicionais
                   </li>
                 )}
@@ -224,30 +228,30 @@ export function SchemaSelector({
           {detecting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Detectando schema...
+              Detectando template...
             </>
           ) : (
             <>
               <Sparkles className="h-4 w-4 text-yellow-500" />
-              Selecione o Schema do Documento
+              Template de Normalização
             </>
           )}
         </CardTitle>
         <CardDescription>
-          Arquivo: <strong>{fileName}</strong>
+          Define como os dados serão extraídos e organizados do arquivo: <strong>{fileName}</strong>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Schema sugerido */}
+        {/* Template sugerido */}
         {suggestedSchema && detection && (
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg p-4">
             <div className="flex items-start justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-blue-600" />
-                <span className="font-semibold text-blue-900">Sugestão Automática</span>
+                <span className="font-semibold text-blue-900">✨ Template Recomendado</span>
               </div>
               <Badge className={getConfidenceColor(detection.confidence)}>
-                {getConfidenceStars(detection.confidence)}
+                Confiança {getConfidenceStars(detection.confidence)}
               </Badge>
             </div>
 
@@ -260,7 +264,7 @@ export function SchemaSelector({
                 className="mt-1 w-4 h-4"
               />
               <div className="flex-1">
-                <h3 className="font-semibold text-blue-900">{suggestedSchema.name}</h3>
+                <h3 className="font-semibold text-blue-900 text-lg">{suggestedSchema.name}</h3>
                 {suggestedSchema.description && (
                   <p className="text-sm text-blue-700 mt-1">{suggestedSchema.description}</p>
                 )}
@@ -270,16 +274,17 @@ export function SchemaSelector({
                   </p>
                 )}
                 <div className="mt-3 text-sm">
-                  <strong className="text-blue-900">Campos a extrair:</strong>
+                  <strong className="text-blue-900">📋 Dados que serão extraídos:</strong>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {suggestedSchema.fields.slice(0, 6).map((field, i) => (
                       <Badge key={i} variant="secondary" className="text-xs">
                         {field.displayName}
+                        {field.isRequired && <span className="text-red-600 ml-0.5">*</span>}
                       </Badge>
                     ))}
                     {suggestedSchema.fields.length > 6 && (
                       <Badge variant="secondary" className="text-xs">
-                        +{suggestedSchema.fields.length - 6}
+                        +{suggestedSchema.fields.length - 6} campos
                       </Badge>
                     )}
                   </div>
@@ -289,7 +294,7 @@ export function SchemaSelector({
           </div>
         )}
 
-        {/* Outros schemas */}
+        {/* Outros templates */}
         {otherSchemas.length > 0 && (
           <div>
             <Button
@@ -298,17 +303,23 @@ export function SchemaSelector({
               onClick={() => setShowAllSchemas(!showAllSchemas)}
               className="w-full justify-between"
             >
-              <span>Ou escolher outro schema ({otherSchemas.length} disponíveis)</span>
+              <span>Ou escolher outro template ({otherSchemas.length} disponíveis)</span>
               {showAllSchemas ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </Button>
 
             {showAllSchemas && (
               <div className="mt-3 space-y-2 max-h-64 overflow-y-auto">
-                <RadioGroup value={selectedSchemaId || ''} onValueChange={handleSchemaChange}>
                   {otherSchemas.map(schema => (
                     <div key={schema.id} className="border rounded-lg p-3 hover:bg-gray-50">
                       <label className="flex items-start gap-3 cursor-pointer">
-                        <RadioGroupItem value={schema.id} className="mt-1" />
+                      <input
+                        type="radio"
+                        name="schema"
+                        value={schema.id}
+                        checked={selectedSchemaId === schema.id}
+                        onChange={() => handleSchemaChange(schema.id)}
+                        className="mt-1 w-4 h-4"
+                      />
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             {getBaseTypeIcon(schema.baseType)}
@@ -327,7 +338,6 @@ export function SchemaSelector({
                       </label>
                     </div>
                   ))}
-                </RadioGroup>
               </div>
             )}
           </div>
@@ -335,7 +345,7 @@ export function SchemaSelector({
 
         {!selectedSchemaId && schemas.length > 0 && (
           <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded p-3">
-            ⚠️ Selecione um schema para continuar
+            ⚠️ Selecione um template para continuar
           </p>
         )}
       </CardContent>

@@ -126,6 +126,21 @@ npm run rag:reprocess     # Reprocessar arquivo específico
 npm run db:studio         # Abrir Drizzle Studio
 ```
 
+## 🔧 Configuração do Cursor (MCP GitHub)
+
+Para desenvolvedores usando o Cursor IDE, você pode configurar a integração com GitHub via MCP (Model Context Protocol):
+
+```bash
+./scripts/setup-github-mcp.sh
+```
+
+Ou consulte a [documentação completa de configuração MCP](CONFIGURACAO_MCP.md).
+
+Benefícios:
+- 📋 Acesso direto a PRs, issues e commits via AI
+- 🔍 Contexto enriquecido do repositório
+- 🤖 Melhor compreensão do histórico do projeto
+
 ## Estrutura do Projeto
 
 ```

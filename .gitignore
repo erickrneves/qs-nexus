@@ -54,6 +54,10 @@ terminals/
 *.swo
 *~
 
+# Cursor
+.cursor/
+.cursor-mcp-config.json
+
 # Logs
 logs
 *.log

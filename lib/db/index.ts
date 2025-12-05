@@ -6,6 +6,11 @@ import * as workflowSchema from './schema/workflows'
 import * as organizationsSchema from './schema/organizations'
 import * as metadataSchema from './schema/metadata-schemas'
 import * as documentsSchema from './schema/documents'
+import * as normalizationTemplatesSchema from './schema/normalization-templates'
+import * as classificationConfigsSchema from './schema/classification-configs'
+import * as normalizedDataSchema from './schema/normalized-data'
+import * as normalizedDataItemsSchema from './schema/normalized-data-items'
+import * as ecdPlanoReferencialSchema from './schema/ecd-plano-referencial'
 import { config } from 'dotenv'
 import { resolve } from 'path'
 
@@ -22,6 +27,11 @@ const schema = {
   ...organizationsSchema,
   ...metadataSchema,
   ...documentsSchema,
+  ...normalizationTemplatesSchema,
+  ...classificationConfigsSchema,
+  ...normalizedDataSchema,
+  ...normalizedDataItemsSchema,
+  ...ecdPlanoReferencialSchema,
 }
 
 // Validate DATABASE_URL after attempting to load
